@@ -22,19 +22,30 @@ import './util/Owned.sol';
 
 /// @title Vault contract
 /// @author Icofunding
-contract Vault is SafeMath, Owned {
-  // This contract is owned by the CGS contract
+contract Vault is SafeMath {
   uint public totalCollected; // Wei
   uint public etherBalance; // Wei
 
+  address public cgsAddress;
+
   event ev_Deposit(uint amount);
   event ev_Withdraw(address to, uint value);
+
+  modifier onlyCGS() {
+    require(msg.sender == cgsAddress);
+
+      _;
+  }
+
+  function Vault() {
+    cgsAddress = msg.sender;
+  }
 
   /// @notice Sends ether to the ICO launcher
   /// @dev Sends ether to the ICO launcher
   /// @param to Account where the funds are going to be sent
   /// @param amount Amount of Wei to withdraw
-  function withdraw(address to, uint amount) public onlyOwner returns(bool) {
+  function withdraw(address to, uint amount) public onlyCGS returns(bool) {
     etherBalance = safeSub(etherBalance, amount);
     to.transfer(amount);
 

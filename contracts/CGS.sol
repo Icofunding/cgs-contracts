@@ -24,7 +24,7 @@ import './Claim.sol';
 
 /// @title CGS contract
 /// @author Icofunding
-contract CGS is SafeMath, Owned {
+contract CGS is SafeMath {
   uint constant TIME_TO_VOTE = 7 days;
   uint constant TIME_TO_REVEAL = 3 days;
 

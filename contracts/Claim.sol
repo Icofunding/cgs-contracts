@@ -23,7 +23,7 @@ import './util/ERC20.sol';
 
 /// @title CGS contract
 /// @author Icofunding
-contract Claim is SafeMath, Owned {
+contract Claim is SafeMath {
   uint constant TIME_BETWEEN_CLAIMS = 100 days;
   uint constant TIME_FOR_REDEEM = 10 days;
 
@@ -90,7 +90,7 @@ contract Claim is SafeMath, Owned {
     // A claim should only be open if redeem is not open
 
     // ev_DepositTokens(msg.sender, amount);
-    
+
     return true;
   }
 
