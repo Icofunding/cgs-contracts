@@ -51,7 +51,7 @@ contract Claim is SafeMath {
 
   Stages public stage; // Current stage. Returns uint.
 
-  address public icoLauncher; // ICO launcher token wallet
+  address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsAddress; // CGS smart contract address
   address public tokenAddress; // CGS smart contract address
 
@@ -77,7 +77,7 @@ contract Claim is SafeMath {
   /// @param _tokenAddress Address of the ICO token smart contract
   function Claim(uint _claimPrice, address _icoLauncher, address _tokenAddress) public {
     claimPrice = _claimPrice;
-    icoLauncher = _icoLauncher;
+    icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
 
     setStage(Stages.ClaimPeriod);
@@ -115,8 +115,8 @@ contract Claim is SafeMath {
     // setStage(Stages.ClaimFailed);
   }
 
-  /// @notice Wheter withdraws are allowed or not
-  /// @dev Wheter withdraws are allowed or not.
+  /// @notice Whether withdraws are allowed or not
+  /// @dev Whether withdraws are allowed or not.
   /// @return True if in ClaimPeriod stage or if a claim succeded no more than 10 days ago ??
   function isWithdrawOpen() public view returns(bool) {
 

@@ -40,8 +40,8 @@ contract Vault is SafeMath {
     cgsAddress = msg.sender;
   }
 
-  /// @notice Sends ether to the ICO launcher
-  /// @dev Sends ether to the ICO launcher
+  /// @notice Sends ether to the ICO launcher/token holders
+  /// @dev Sends ether to the ICO launcher/token holders
   /// @param to Account where the funds are going to be sent
   /// @param amount Amount of Wei to withdraw
   function withdraw(address to, uint amount) public onlyCGS returns(bool) {

@@ -112,6 +112,7 @@ contract CGS is SafeMath {
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
   /// @dev Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
+  /// @param secretVote Hash of the vote + salt
   function vote(bytes32 secretVote) public timedTransitions atStage(Stages.SecretVote) returns(bool) {
 
     return true;
@@ -119,6 +120,7 @@ contract CGS is SafeMath {
 
   /// @notice Reveal the vote
   /// @dev Reveal the vote
+  /// @param salt Random salt used to vote
   /// @return The direction of the vote
   function reveal(bytes32 salt) public timedTransitions atStage(Stages.RevealVote) returns(bool) {
 
