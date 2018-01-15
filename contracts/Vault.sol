@@ -48,7 +48,7 @@ contract Vault is SafeMath {
     etherBalance = safeSub(etherBalance, amount);
     to.transfer(amount);
 
-    ev_Withdraw(to, value);
+    ev_Withdraw(to, amount);
 
     return true;
   }
@@ -59,7 +59,7 @@ contract Vault is SafeMath {
     totalCollected = safeAdd(totalCollected, msg.value);
     etherBalance = safeAdd(etherBalance, msg.value);
 
-    ev_Deposit(amount);
+    ev_Deposit(msg.value);
 
     return true;
   }

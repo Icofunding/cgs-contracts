@@ -48,7 +48,7 @@ contract CGS is SafeMath {
     Stages stage; // Current state of the vote
     uint votesYes; // Votes that the project is doing a proper use of the funds. Updated during Reveal stage
     uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
-    mapping (address => bytes32) votes;
+    mapping (address => bytes32) secretVotes;
     mapping (address => bool) revealed;
   }
 
@@ -62,6 +62,7 @@ contract CGS is SafeMath {
 
   address public vaultAddress;
   address public claimAddress;
+  address public icoLauncherWallet;
 
   event ev_NewStage(uint indexed voteId, Stages stage);
 
@@ -104,14 +105,14 @@ contract CGS is SafeMath {
   ) public {
     roadMapMoney = _roadMapMoney;
     roadMapDates = _roadMapDates;
-    wallet = _wallet;
+    icoLauncherWallet = _wallet;
     vaultAddress = new Vault();
     claimAddress = new Claim(_claimPrice, _wallet, _token);
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
   /// @dev Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
-  function vote(bytes32 secretVote) public timedTransitions atStage(Stage.SecretVote) returns(bool) {
+  function vote(bytes32 secretVote) public timedTransitions atStage(Stages.SecretVote) returns(bool) {
 
     return true;
   }
@@ -119,14 +120,14 @@ contract CGS is SafeMath {
   /// @notice Reveal the vote
   /// @dev Reveal the vote
   /// @return The direction of the vote
-  function reveal(bytes32 salt) public timedTransitions atStage(Stage.RevealVote) returns(bool) {
+  function reveal(bytes32 salt) public timedTransitions atStage(Stages.RevealVote) returns(bool) {
 
     return true;
   }
 
   /// @notice Count the votes and calls Claim to inform of the result
   /// @dev Count the votes and calls Claim to inform of the result
-  function finalizeVote() public atStage(Stage.Settlement) {
+  function finalizeVote() public atStage(Stages.Settlement) {
     // Claim(claimAddress).claimResult(true);
     // Claim(claimAddress).claimResult(false);
   }
@@ -150,8 +151,8 @@ contract CGS is SafeMath {
   /// @dev Changes the stage to _stage
   /// @param _stage New stage
   function setStage(Stages _stage) private {
-    stage = _stage;
+    votes[currentVote].stage = _stage;
 
-    ev_NewStage(currentVote, stage);
+    ev_NewStage(currentVote, _stage);
   }
 }
