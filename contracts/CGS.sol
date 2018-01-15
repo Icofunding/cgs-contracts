@@ -1,7 +1,6 @@
 pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
-import './util/Owned.sol';
 import './Vault.sol';
 import './Claim.sol';
 

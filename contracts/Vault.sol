@@ -1,7 +1,6 @@
 pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
-import './util/Owned.sol';
 
 /*
   Copyright (C) 2018 Icofunding S.L.
