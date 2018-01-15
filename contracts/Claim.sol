@@ -75,7 +75,7 @@ contract Claim is SafeMath {
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  function Claim(uint _claimPrice, address _icoLauncher, address _tokenAddress) {
+  function Claim(uint _claimPrice, address _icoLauncher, address _tokenAddress) public {
     claimPrice = _claimPrice;
     icoLauncher = _icoLauncher;
     tokenAddress = _tokenAddress;

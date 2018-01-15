@@ -36,7 +36,7 @@ contract Vault is SafeMath {
       _;
   }
 
-  function Vault() {
+  function Vault() public {
     cgsAddress = msg.sender;
   }
 

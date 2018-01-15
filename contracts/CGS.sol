@@ -101,7 +101,7 @@ contract CGS is SafeMath {
     uint _claimPrice,
     address _wallet,
     address _token
-  ) {
+  ) public {
     roadMapMoney = _roadMapMoney;
     roadMapDates = _roadMapDates;
     wallet = _wallet;
