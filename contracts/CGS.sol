@@ -142,7 +142,7 @@ contract CGS is SafeMath {
 
   /// @notice Opens a claim by starting a vote
   /// @dev Opens a claim by starting a vote
-  function openClaim() public onlyClaimContract {
+  function openClaim() public onlyClaimContract returns(bool) {
 
     return true;
   }
