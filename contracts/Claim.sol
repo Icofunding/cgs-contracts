@@ -54,7 +54,7 @@ contract Claim is SafeMath {
   address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsAddress; // CGS smart contract address
   address public tokenAddress; // CGS smart contract address
-  address public vaultAddress;
+  address public vaultAddress; // Vault smart contract
 
   event ev_DepositTokens(address who, uint amount);
 
@@ -81,7 +81,7 @@ contract Claim is SafeMath {
     uint _claimPrice,
     address _icoLauncher,
     address _tokenAddress,
-    address _vaultAddress
+    address _vaultAddress,
     ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
@@ -94,9 +94,17 @@ contract Claim is SafeMath {
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   function depositTokens() public backToClaimPeriod returns(bool) {
-    // A claim should only be open if redeem is not open
+    require(stage == Stages.ClaimPeriod);
 
-    // ev_DepositTokens(msg.sender, amount);
+    uint amount = ERC20(tokenAddress).allowance();
+
+    if(!ERC20(tokenAddress).transferFrom(msg.sender, this, amount))
+      revert();
+
+    if(ERC20(tokenAddress).balanceOf(this) >= claimPrice)
+      CGS(cgsAddress).openClaim();
+
+    ev_DepositTokens(msg.sender, amount);
 
     return true;
   }
