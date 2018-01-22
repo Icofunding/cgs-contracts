@@ -1,5 +1,6 @@
 const Claim = artifacts.require("./Claim.sol");
 const TestToken = artifacts.require("./test/TestToken.sol");
+const TestCGS = artifacts.require("./test/TestCGS.sol");
 
 
 contract('Claim', function(accounts) {
@@ -45,15 +46,37 @@ contract('Claim', function(accounts) {
     let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, fakeCGS);
 
     await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
+
     let event = (await ClaimContract.depositTokens({from: tokenHolder1})).logs[0];
     assert.equal(event.event, 'ev_DepositTokens', "incorrect event name");
     assert.equal(event.args.who, tokenHolder1, "incorrect sender");
     assert.equal(event.args.amount.toNumber(), tokensToDeposit, "incorrect amount");
 
     assert.equal(tokensToDeposit, (await TestTokenContract.balanceOf.call(ClaimContract.address)).toNumber(), "incorrect number of tokens deposited");
+    assert.equal(tokensToDeposit, (await ClaimContract.userDeposits.call(tokenHolder1)).toNumber(), "incorrect number of tokens deposited by user");
+    assert.equal(tokensToDeposit, (await ClaimContract.totalDeposit.call()).toNumber(), "incorrect number of tokens deposited in variable");
+  });
+
+  it("Deposit tokens until a claim is open", async function() {
+    let icoInitialSupply = 1000;
+    let tokensToDeposit = 351;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestCGSContract = await TestCGS.new();
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, TestCGSContract.address);
+
+    await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
+    await ClaimContract.depositTokens({from: tokenHolder1});
+
+    assert.isFalse(await TestCGSContract.isClaimOpen.call(), "incorrect value");
+
+    await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
+    await ClaimContract.depositTokens({from: tokenHolder1});
+
+    assert.isTrue(await TestCGSContract.isClaimOpen.call(), "incorrect value");
+
+    assert.equal(tokensToDeposit*2, (await TestTokenContract.balanceOf.call(ClaimContract.address)).toNumber(), "incorrect number of tokens deposited");
+    assert.equal(tokensToDeposit*2, (await ClaimContract.userDeposits.call(tokenHolder1)).toNumber(), "incorrect number of tokens deposited by user");
+    assert.equal(tokensToDeposit*2, (await ClaimContract.totalDeposit.call()).toNumber(), "incorrect number of tokens deposited in variable");
   });
 });
-
-function handleException(error) {
-  assert(error.toString().indexOf("invalid JUMP") != -1 || error.toString().indexOf("out of gas") != -1 || error.toString().indexOf("invalid opcode") != -1, error.toString());
-}

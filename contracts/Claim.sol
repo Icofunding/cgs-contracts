@@ -97,15 +97,26 @@ contract Claim is SafeMath {
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   function depositTokens() public backToClaimPeriod returns(bool) {
+    // Check stage
     require(stage == Stages.ClaimPeriod);
 
+    // Send the approved amount of tokens
     uint amount = ERC20(tokenAddress).allowance(msg.sender, this);
 
     if(!ERC20(tokenAddress).transferFrom(msg.sender, this, amount))
       revert();
 
-    if(ERC20(tokenAddress).balanceOf(this) >= claimPrice)
-      CGS(cgsAddress).openClaim();
+    // Update balances
+    userDeposits[msg.sender] += amount;
+    totalDeposit += amount;
+
+    // Open a claim?
+    if(totalDeposit >= claimPrice) {
+      if(CGS(cgsAddress).openClaim()) {
+        lastClaim = now;
+        setStage(Stages.ClaimOpen);
+      }
+    }
 
     ev_DepositTokens(msg.sender, amount);
 
