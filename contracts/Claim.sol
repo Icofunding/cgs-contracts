@@ -54,6 +54,7 @@ contract Claim is SafeMath {
   address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsAddress; // CGS smart contract address
   address public tokenAddress; // CGS smart contract address
+  address public vaultAddress;
 
   event ev_DepositTokens(address who, uint amount);
 
@@ -75,10 +76,17 @@ contract Claim is SafeMath {
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  function Claim(uint _claimPrice, address _icoLauncher, address _tokenAddress) public {
+  /// @param _vaultAddress Address of the Vault smart contract
+  function Claim(
+    uint _claimPrice,
+    address _icoLauncher,
+    address _tokenAddress,
+    address _vaultAddress
+    ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
+    vaultAddress = _vaultAddress;
 
     setStage(Stages.ClaimPeriod);
   }
