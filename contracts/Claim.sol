@@ -87,6 +87,7 @@ contract Claim is SafeMath {
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
     vaultAddress = _vaultAddress;
+    cgsAddress = msg.sender;
 
     setStage(Stages.ClaimPeriod);
   }
