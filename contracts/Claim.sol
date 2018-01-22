@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
 import './util/ERC20.sol';
+import './CGS.sol';
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -82,12 +83,13 @@ contract Claim is SafeMath {
     address _icoLauncher,
     address _tokenAddress,
     address _vaultAddress,
-    ) public {
+    address _cgsAddress
+  ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
     vaultAddress = _vaultAddress;
-    cgsAddress = msg.sender;
+    cgsAddress = _cgsAddress;
 
     setStage(Stages.ClaimPeriod);
   }
@@ -97,7 +99,7 @@ contract Claim is SafeMath {
   function depositTokens() public backToClaimPeriod returns(bool) {
     require(stage == Stages.ClaimPeriod);
 
-    uint amount = ERC20(tokenAddress).allowance();
+    uint amount = ERC20(tokenAddress).allowance(msg.sender, this);
 
     if(!ERC20(tokenAddress).transferFrom(msg.sender, this, amount))
       revert();
