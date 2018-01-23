@@ -52,12 +52,18 @@ contract Claim is SafeMath {
 
   Stages public stage; // Current stage. Returns uint.
 
+  uint public currentClaim; // currentClaim
+  // claim in which the token holder has deposited tokens.
+  // 0 = no tokens deposited in previous claims
+  mapping (address => uint) public claimDeposited;
+
   address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsAddress; // CGS smart contract address
   address public tokenAddress; // CGS smart contract address
   address public vaultAddress; // Vault smart contract
 
   event ev_DepositTokens(address who, uint amount);
+  event ev_WithdrawTokens(address who, uint amount);
 
   modifier onlyCGS() {
     require(msg.sender == cgsAddress);
@@ -66,8 +72,11 @@ contract Claim is SafeMath {
   }
 
   modifier backToClaimPeriod() {
-    if(stage != Stages.ClaimPeriod && lastClaim + TIME_BETWEEN_CLAIMS <= now)
+    if(stage != Stages.ClaimPeriod && lastClaim + TIME_BETWEEN_CLAIMS <= now) {
+      totalDeposit = 0;
+      currentClaim++;
       setStage(Stages.ClaimPeriod);
+    }
 
     _;
   }
@@ -90,6 +99,7 @@ contract Claim is SafeMath {
     tokenAddress = _tokenAddress;
     vaultAddress = _vaultAddress;
     cgsAddress = _cgsAddress;
+    currentClaim = 1;
 
     setStage(Stages.ClaimPeriod);
   }
@@ -99,16 +109,19 @@ contract Claim is SafeMath {
   function depositTokens() public backToClaimPeriod returns(bool) {
     // Check stage
     require(stage == Stages.ClaimPeriod);
+    // The user has no tokens deposited in previous claims
+    require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
 
     // Send the approved amount of tokens
     uint amount = ERC20(tokenAddress).allowance(msg.sender, this);
 
-    if(!ERC20(tokenAddress).transferFrom(msg.sender, this, amount))
-      revert();
+    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, amount));
 
     // Update balances
     userDeposits[msg.sender] += amount;
     totalDeposit += amount;
+
+    claimDeposited[msg.sender] = currentClaim;
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
@@ -127,8 +140,34 @@ contract Claim is SafeMath {
   /// @dev Withdraws tokens
   /// @param amount Number of tokens
   function withdrawTokens(uint amount) public backToClaimPeriod returns(bool) {
+    // Check stage
+    require(stage == Stages.ClaimPeriod);
+    // Enough tokens deposited
+    require(userDeposits[msg.sender] >= amount);
+    // The tokens are doposited for the current claim.
+    // If the tokens are from previous claims, the user should cashOut instead
+    require(claimDeposited[msg.sender] == currentClaim);
+
+    // Update balances
+    userDeposits[msg.sender] -= amount;
+    totalDeposit -= amount;
+
+    // No tokens in this claim
+    if(userDeposits[msg.sender] == 0)
+      claimDeposited[msg.sender] = 0;
+
+    // Send the tokens to the user
+    assert(ERC20(tokenAddress).transfer(msg.sender, amount));
+
+    ev_WithdrawTokens(msg.sender, amount);
 
     return true;
+  }
+
+  /// @notice Withdraws all tokens after a claim is open
+  /// @dev Withdraws all tokens after a claim is open
+  function cashOut() public backToClaimPeriod returns(bool) {
+
   }
 
   /// @notice Exchange tokens for ether if a claim success
