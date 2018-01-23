@@ -10,6 +10,7 @@ contract('Claim', function(accounts) {
   let icoLauncher;
 
   let fakeVault;
+  let fakeCGS;
 
   let claimPrice = 700;
 
@@ -20,6 +21,7 @@ contract('Claim', function(accounts) {
     icoLauncher = accounts[3];
 
     fakeVault = accounts[4];
+    fakeCGS = accounts[5];
   });
 
   it("Deployment with initial values", async function() {
@@ -125,4 +127,34 @@ contract('Claim', function(accounts) {
   it("Withdraw tokens in a different stage should fail");
   it("Withdraw more tokens than deposited should fail");
   it("Withdraw tokens from previous claims should fail");
+
+  it("Receive a claim result: true", async function() {
+    let icoInitialSupply = 1000;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, fakeCGS);
+
+    // Check the event
+    await ClaimContract.claimResult(true, {from: fakeCGS});
+
+    // To make sure that the balances are updated correctly
+    let currentClaim = (await ClaimContract.currentClaim.call()).toNumber();
+    assert.isTrue(await ClaimContract.claimResults.call(currentClaim), "incorrect value");
+    assert.equal(2, (await ClaimContract.stage.call()).toNumber(), "incorrect stage");
+  });
+
+  it("Receive a claim result: false", async function() {
+    let icoInitialSupply = 1000;
+    
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, fakeCGS);
+
+    // Check the event
+    await ClaimContract.claimResult(false, {from: fakeCGS});
+
+    // To make sure that the balances are updated correctly
+    let currentClaim = (await ClaimContract.currentClaim.call()).toNumber();
+    assert.isFalse(await ClaimContract.claimResults.call(currentClaim), "incorrect value");
+    assert.equal(3, (await ClaimContract.stage.call()).toNumber(), "incorrect stage");
+  });
 });

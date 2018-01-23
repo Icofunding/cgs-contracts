@@ -32,27 +32,30 @@ contract Claim is SafeMath {
    *   deposited, a claim is open.
    * - ClaimOpen: Deposits and withdrawals get blocked while the CGS holders vote the dispute.
    *   When the result of the vote is received, the state moves to the appropriate next stage.
-   * - ClaimSucceed: Users can exchange their tokens (using transferFrom) for ether for a limited period of time.
-   *   Users with tokens deposited must withdraw them first.
-   *   The state moves to ClaimPeriod if ClaimPeriod + TIME_BETWEEN_CLAIMS <= now.
-   * - ClaimFailed: Users can withdraw their tokens with a penalization.
-   *   The state moves to ClaimPeriod if ClaimPeriod + TIME_BETWEEN_CLAIMS <= now.
+   * - Redeem: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
+   *   ICO holders can exhcnage theur ICO token for ether.
+   *   The state moves to ClaimEnded if startRedeem + TIME_FOR_REDEEM <= now.
+   *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
+   * - ClaimEnded: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
+   *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
    */
   enum Stages {
     ClaimPeriod,
     ClaimOpen,
-    ClaimSucceed,
-    ClaimFailed
+    Redeem,
+    ClaimEnded
   }
 
   mapping (address => uint) public userDeposits; // Number of ICO tokens (plus decimals).
   uint public totalDeposit; // Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
   uint public claimPrice; // Number of ICO tokens (plus decimals)
   uint public lastClaim; // Timestamp when the last claim was open
+  uint public startRedeem; // Timestamp when the redeem period starts
 
   Stages public stage; // Current stage. Returns uint.
 
   uint public currentClaim; // currentClaim
+  mapping (uint => bool) public claimResults; // If the claims have succeded or not
   // claim in which the token holder has deposited tokens.
   // 0 = no tokens deposited in previous claims
   mapping (address => uint) public claimDeposited;
@@ -168,11 +171,14 @@ contract Claim is SafeMath {
   /// @dev Withdraws all tokens after a claim is open
   function cashOut() public backToClaimPeriod returns(bool) {
 
+    // Needs claimResult
+
   }
 
   /// @notice Exchange tokens for ether if a claim success
   /// @dev Exchange tokens for ether if a claim success
   function redeem() public returns(bool) {
+    // Needs Vault
 
     return true;
   }
@@ -180,14 +186,21 @@ contract Claim is SafeMath {
   /// @notice Receives the result of a claim
   /// @dev Receives the result of a claim
   function claimResult(bool claimSucceed) public onlyCGS {
-    // setStage(Stages.ClaimSucceed);
-    // setStage(Stages.ClaimFailed);
+    claimResults[currentClaim] = claimSucceed;
+
+    if(claimSucceed) {
+      setStage(Stages.Redeem);
+      startRedeem = now;
+    } else {
+      setStage(Stages.ClaimEnded);
+    }
   }
 
   /// @notice Whether withdraws are allowed or not
   /// @dev Whether withdraws are allowed or not.
   /// @return True if in ClaimPeriod stage or if a claim succeded no more than 10 days ago ??
   function isWithdrawOpen() public view returns(bool) {
+
 
     return true;
   }
