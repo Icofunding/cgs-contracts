@@ -76,10 +76,18 @@ contract Claim is SafeMath {
   }
 
   modifier backToClaimPeriod() {
-    if(stage != Stages.ClaimPeriod && lastClaim + TIME_BETWEEN_CLAIMS <= now) {
+    if(stage != Stages.ClaimPeriod && isClaimPeriod()) {
       totalDeposit = 0;
       currentClaim++;
       setStage(Stages.ClaimPeriod);
+    }
+
+    _;
+  }
+
+  modifier endRedeemPeriod() {
+    if(stage == Stages.Redeem && isRedeemStage()) {
+      setStage(Stages.ClaimEnded);
     }
 
     _;
@@ -98,7 +106,7 @@ contract Claim is SafeMath {
   ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
-    tokenAddress = _tokenAddress;    
+    tokenAddress = _tokenAddress;
     cgsAddress = _cgsAddress;
     vaultAddress = new Vault(this);
     currentClaim = 1;
@@ -168,7 +176,7 @@ contract Claim is SafeMath {
 
   /// @notice Withdraws all tokens after a claim finished
   /// @dev Withdraws all tokens after a claim finished
-  function cashOut() public backToClaimPeriod returns(bool) {
+  function cashOut() public endRedeemPeriod backToClaimPeriod returns(bool) {
     uint claim = claimDeposited[msg.sender];
 
     if(claim != 0) {
@@ -196,10 +204,21 @@ contract Claim is SafeMath {
     }
   }
 
-  /// @notice Exchange tokens for ether if a claim success
-  /// @dev Exchange tokens for ether if a claim success
-  function redeem() public returns(bool) {
-    // Needs Vault
+  /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
+  /// @dev Exchange tokens for ether if a claim success. Executed after approve(...)
+  function redeem() public endRedeemPeriod returns(bool) {
+    // Check stage
+    require(stage == Stages.Redeem);
+
+    // Number of tokens to exchange
+    uint numTokens = ERC20(tokenAddress).allowance(msg.sender, this);
+    // Calculate the amount of Wei to receive in exchange of the tokens
+    uint weiToSend = (numTokens * Vault(vaultAddress).etherBalance()) / ERC20(tokenAddress).totalSupply();
+
+    // Send Tokens to ICO launcher
+    assert(ERC20(tokenAddress).transferFrom(msg.sender, icoLauncherWallet, numTokens));
+    // Send ether to ICO holder
+    Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
     return true;
   }
@@ -217,13 +236,20 @@ contract Claim is SafeMath {
     }
   }
 
-  /// @notice Whether withdraws are allowed or not
-  /// @dev Whether withdraws are allowed or not.
-  /// @return True if in ClaimPeriod stage or if a claim succeded no more than 10 days ago ??
-  function isWithdrawOpen() public view returns(bool) {
+  /// @notice Whether a new claim can be open or not
+  /// @dev Whether a new claim can be open or not
+  /// @return True if new claims can be open
+  function isClaimPeriod() public view returns(bool) {
 
+    return (lastClaim + TIME_BETWEEN_CLAIMS <= now);
+  }
 
-    return true;
+  /// @notice Whether ICO tokens can be exchanged for ether or not
+  /// @dev Whether ICO tokens can be exchanged for ether or not
+  /// @return True if ICO tokens can be exchanged for ether
+  function isRedeemStage() public view returns(bool) {
+
+    return (startRedeem + TIME_FOR_REDEEM <= now);
   }
 
   /// @notice Changes the stage to _stage
@@ -232,12 +258,4 @@ contract Claim is SafeMath {
   function setStage(Stages _stage) private {
     stage = _stage;
   }
-
-  /// @notice Sends tokens to the ICO launcher when there is a failed claim
-  /// @dev Sends tokens to the ICO launcher when there is a failed claim
-  function sendTokensToIcoLauncher(uint numTokens) private returns(bool) {
-
-    return true;
-  }
-
 }

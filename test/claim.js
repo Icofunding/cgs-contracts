@@ -160,4 +160,10 @@ contract('Claim', function(accounts) {
   it("Cash out an old claim");
   it("Cash out with 0 tokens deposited shouldn't return any token");
   it("Cash out the last claim before it ends should fail");
+
+  it("Redeem tokens for ether");
+  it("Redeem 0 tokens");
+  it("Redeem in a different stage should fail");
+
+  // Also test modifiers to change stage
 });
