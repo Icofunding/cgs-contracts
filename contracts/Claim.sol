@@ -155,7 +155,7 @@ contract Claim is SafeMath {
     userDeposits[msg.sender] -= amount;
     totalDeposit -= amount;
 
-    // No tokens in this claim
+    // No tokens in this (or any) claim
     if(userDeposits[msg.sender] == 0)
       claimDeposited[msg.sender] = 0;
 
@@ -167,12 +167,34 @@ contract Claim is SafeMath {
     return true;
   }
 
-  /// @notice Withdraws all tokens after a claim is open
-  /// @dev Withdraws all tokens after a claim is open
+  /// @notice Withdraws all tokens after a claim finished
+  /// @dev Withdraws all tokens after a claim finished
   function cashOut() public backToClaimPeriod returns(bool) {
+    uint claim = claimDeposited[msg.sender];
 
-    // Needs claimResult
+    if(claim != 0) {
+      if(claim == currentClaim && stage == Stages.ClaimEnded) {
+        var (,, votesYes, votesNo) = CGS(cgsAddress).votes(claim-1);
 
+        uint tokensToCashOut = userDeposits[msg.sender];
+
+        // If the claim does not succeded
+        if(votesYes >= votesNo) {
+          // 1% penalization goes to ICO launcher
+          uint tokensToIcoLauncher = tokensToCashOut/100;
+          tokensToCashOut -= tokensToIcoLauncher;
+
+          assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
+        }
+
+        // Update balance
+        userDeposits[msg.sender] = 0;
+        claimDeposited[msg.sender] = 0;
+
+        // Cash out
+        assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
+      }
+    }
   }
 
   /// @notice Exchange tokens for ether if a claim success
