@@ -60,7 +60,6 @@ contract CGS is SafeMath {
   uint[] public roadMapMoney; // Wei
   uint[] public roadMapDates; // Timestamps
 
-  address public vaultAddress;
   address public claimAddress;
   address public icoLauncherWallet;
 
@@ -106,8 +105,7 @@ contract CGS is SafeMath {
     roadMapMoney = _roadMapMoney;
     roadMapDates = _roadMapDates;
     icoLauncherWallet = _wallet;
-    vaultAddress = new Vault();
-    claimAddress = new Claim(_claimPrice, _wallet, _token, vaultAddress, this);
+    claimAddress = new Claim(_claimPrice, _wallet, _token, this);
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)

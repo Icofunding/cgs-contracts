@@ -3,6 +3,7 @@ pragma solidity ^0.4.18;
 import './util/SafeMath.sol';
 import './util/ERC20.sol';
 import './CGS.sol';
+import './Vault.sol';
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -89,19 +90,17 @@ contract Claim is SafeMath {
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  /// @param _vaultAddress Address of the Vault smart contract
   function Claim(
     uint _claimPrice,
     address _icoLauncher,
     address _tokenAddress,
-    address _vaultAddress,
     address _cgsAddress
   ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
-    tokenAddress = _tokenAddress;
-    vaultAddress = _vaultAddress;
+    tokenAddress = _tokenAddress;    
     cgsAddress = _cgsAddress;
+    vaultAddress = new Vault(this);
     currentClaim = 1;
 
     setStage(Stages.ClaimPeriod);

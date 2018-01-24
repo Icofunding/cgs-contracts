@@ -9,7 +9,6 @@ contract('Claim', function(accounts) {
   let tokenHolder2;
   let icoLauncher;
 
-  let fakeVault;
   let fakeCGS;
 
   let claimPrice = 700;
@@ -20,7 +19,6 @@ contract('Claim', function(accounts) {
     tokenHolder2 = accounts[2];
     icoLauncher = accounts[3];
 
-    fakeVault = accounts[4];
     fakeCGS = accounts[5];
   });
 
@@ -29,13 +27,12 @@ contract('Claim', function(accounts) {
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
     let TestCGSContract = await TestCGS.new();
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, TestCGSContract.address);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, TestCGSContract.address);
 
     // Default value for all variables
     assert.equal(claimPrice, (await ClaimContract.claimPrice.call()).toNumber(), "incorrect price");
     assert.equal(icoLauncher, await ClaimContract.icoLauncherWallet.call(), "incorrect _icoLauncherWallet");
     assert.equal(TestTokenContract.address, await ClaimContract.tokenAddress.call(), "incorrect tokenAddress");
-    assert.equal(fakeVault, await ClaimContract.vaultAddress.call(), "incorrect _vaultAddress");
     assert.equal(TestCGSContract.address, await ClaimContract.cgsAddress.call(), "incorrect cgsAddress");
     assert.equal(0, (await ClaimContract.stage.call()).toNumber(), "incorrect stage");
     assert.equal(1, (await ClaimContract.currentClaim.call()).toNumber(), "incorrect current claim");
@@ -50,7 +47,7 @@ contract('Claim', function(accounts) {
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
     let TestCGSContract = await TestCGS.new();
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, TestCGSContract.address);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, TestCGSContract.address);
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
@@ -74,7 +71,7 @@ contract('Claim', function(accounts) {
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
     let TestCGSContract = await TestCGS.new();
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, TestCGSContract.address);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, TestCGSContract.address);
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
@@ -105,7 +102,7 @@ contract('Claim', function(accounts) {
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
     let TestCGSContract = await TestCGS.new();
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, TestCGSContract.address);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, TestCGSContract.address);
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(ClaimContract.address, tokensToDeposit, {from: tokenHolder1});
@@ -132,7 +129,7 @@ contract('Claim', function(accounts) {
     let icoInitialSupply = 1000;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, fakeCGS);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeCGS);
 
     // Check the event
     await ClaimContract.claimResult(true, {from: fakeCGS});
@@ -147,7 +144,7 @@ contract('Claim', function(accounts) {
     let icoInitialSupply = 1000;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
-    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeVault, fakeCGS);
+    let ClaimContract = await Claim.new(claimPrice, icoLauncher, TestTokenContract.address, fakeCGS);
 
     // Check the event
     await ClaimContract.claimResult(false, {from: fakeCGS});
@@ -161,7 +158,6 @@ contract('Claim', function(accounts) {
   it("Cash out the last claim when succeded");
   it("Cash out the last claim when did not succeed");
   it("Cash out an old claim");
-  it("Cash out with 0 tokens deposited");
-  it("Cash out when the claim succeded");
+  it("Cash out with 0 tokens deposited shouldn't return any token");
   it("Cash out the last claim before it ends should fail");
 });
