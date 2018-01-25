@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
 import './Vault.sol';
-import './Claim.sol';
+import './Wevern.sol';
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -21,9 +21,9 @@ import './Claim.sol';
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/// @title CGS contract
+/// @title CGSVote contract
 /// @author Icofunding
-contract CGS is SafeMath {
+contract CGSVote is SafeMath {
   uint constant TIME_TO_VOTE = 7 days;
   uint constant TIME_TO_REVEAL = 3 days;
 
@@ -60,13 +60,13 @@ contract CGS is SafeMath {
   uint[] public roadMapMoney; // Wei
   uint[] public roadMapDates; // Timestamps
 
-  address public claimAddress;
+  address public wevernAddress;
   address public icoLauncherWallet;
 
   event ev_NewStage(uint indexed voteId, Stages stage);
 
-  modifier onlyClaimContract() {
-    require(msg.sender == claimAddress);
+  modifier onlyWevernContract() {
+    require(msg.sender == wevernAddress);
 
     _;
   }
@@ -88,14 +88,14 @@ contract CGS is SafeMath {
     _;
   }
 
-  /// @notice Creates a CGS smart contract
-  /// @dev Creates a CGS smart contract.
+  /// @notice Creates a CGSVote smart contract
+  /// @dev Creates a CGSVote smart contract.
   /// roadMapMoney and roadMapDates must have the same length.
   /// roadMapDates must be an ordered list.
   /// @param _roadMapMoney List of wei amounts to be released
   /// @param _roadMapDates List of timestamps when the wei amounts in roadMapMoney are going to be released
   /// @param _wallet ICO launcher wallet address
-  function CGS(
+  function CGSVote(
     uint[] _roadMapMoney,
     uint[] _roadMapDates,
     uint _claimPrice,
@@ -105,7 +105,7 @@ contract CGS is SafeMath {
     roadMapMoney = _roadMapMoney;
     roadMapDates = _roadMapDates;
     icoLauncherWallet = _wallet;
-    claimAddress = new Claim(_claimPrice, _wallet, _token, this);
+    wevernAddress = new Wevern(_claimPrice, _wallet, _token, this);
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
@@ -125,11 +125,10 @@ contract CGS is SafeMath {
     return true;
   }
 
-  /// @notice Count the votes and calls Claim to inform of the result
-  /// @dev Count the votes and calls Claim to inform of the result
+  /// @notice Count the votes and calls Wevern to inform of the result
+  /// @dev Count the votes and calls Wevern to inform of the result
   function finalizeVote() public atStage(Stages.Settlement) {
-    // Claim(claimAddress).claimResult(true);
-    // Claim(claimAddress).claimResult(false);
+    // Wevern(wevernAddress).claimResult(true);
   }
 
   /// @notice Withdraws CGS tokens after bonus/penalization
@@ -142,7 +141,7 @@ contract CGS is SafeMath {
 
   /// @notice Opens a claim by starting a vote
   /// @dev Opens a claim by starting a vote
-  function openClaim() public onlyClaimContract returns(bool) {
+  function openClaim() public onlyWevernContract returns(bool) {
 
     return true;
   }

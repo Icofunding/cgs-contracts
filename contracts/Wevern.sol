@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
 import './util/ERC20.sol';
-import './CGS.sol';
+import './CGSVote.sol';
 import './Vault.sol';
 
 /*
@@ -22,9 +22,9 @@ import './Vault.sol';
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/// @title CGS contract
+/// @title Wevern contract
 /// @author Icofunding
-contract Claim is SafeMath {
+contract Wevern is SafeMath {
   uint constant TIME_BETWEEN_CLAIMS = 100 days;
   uint constant TIME_FOR_REDEEM = 10 days;
 
@@ -62,15 +62,15 @@ contract Claim is SafeMath {
   mapping (address => uint) public claimDeposited;
 
   address public icoLauncherWallet; // ICO launcher token wallet
-  address public cgsAddress; // CGS smart contract address
-  address public tokenAddress; // CGS smart contract address
+  address public cgsVoteAddress; // CGSVote smart contract address
+  address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
 
-  modifier onlyCGS() {
-    require(msg.sender == cgsAddress);
+  modifier onlyCGSVote() {
+    require(msg.sender == cgsVoteAddress);
 
     _;
   }
@@ -93,21 +93,21 @@ contract Claim is SafeMath {
     _;
   }
 
-  /// @notice Creates a Claim smart contract
-  /// @dev Creates a Claim smart contract.
+  /// @notice Creates a Wevern smart contract
+  /// @dev Creates a Wevern smart contract.
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  function Claim(
+  function Wevern(
     uint _claimPrice,
     address _icoLauncher,
     address _tokenAddress,
-    address _cgsAddress
+    address _cgsVoteAddress
   ) public {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsAddress = _cgsAddress;
+    cgsVoteAddress = _cgsVoteAddress;
     vaultAddress = new Vault(this);
     currentClaim = 1;
 
@@ -135,7 +135,7 @@ contract Claim is SafeMath {
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
-      if(CGS(cgsAddress).openClaim()) {
+      if(CGSVote(cgsVoteAddress).openClaim()) {
         lastClaim = now;
         setStage(Stages.ClaimOpen);
       }
@@ -181,7 +181,7 @@ contract Claim is SafeMath {
 
     if(claim != 0) {
       if(claim == currentClaim && stage == Stages.ClaimEnded) {
-        var (,, votesYes, votesNo) = CGS(cgsAddress).votes(claim-1);
+        var (,, votesYes, votesNo) = CGSVote(cgsVoteAddress).votes(claim-1);
 
         uint tokensToCashOut = userDeposits[msg.sender];
 
@@ -225,7 +225,7 @@ contract Claim is SafeMath {
 
   /// @notice Receives the result of a claim
   /// @dev Receives the result of a claim
-  function claimResult(bool claimSucceed) public onlyCGS {
+  function claimResult(bool claimSucceed) public onlyCGSVote {
     claimResults[currentClaim] = claimSucceed;
 
     if(claimSucceed) {
