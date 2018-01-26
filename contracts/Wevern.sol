@@ -61,6 +61,11 @@ contract Wevern is SafeMath {
   // 0 = no tokens deposited in previous claims
   mapping (address => uint) public claimDeposited;
 
+  uint[] public roadmapWei; // Wei
+  uint[] public roadmapDates; // Timestamps
+
+  uint public weiToWithdraw; // Wei that the ICO launcher can withdraw to date
+
   address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsVoteAddress; // CGSVote smart contract address
   address public tokenAddress; // ICO token smart contract address
@@ -93,21 +98,34 @@ contract Wevern is SafeMath {
     _;
   }
 
+  modifier onlyIcoLauncher() {
+    require(msg.sender == icoLauncherWallet);
+
+    _;
+  }
+
   /// @notice Creates a Wevern smart contract
   /// @dev Creates a Wevern smart contract.
+  /// roadmapWei and roadmapDates must have the same length.
+  /// roadmapDates must be an ordered list.
+  /// @param _roadmapWei List of wei amounts to be released
+  /// @param _roadmapDates List of timestamps when the wei amounts in roadmapWei are going to be released
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
   function Wevern(
+    uint[] _roadmapWei,
+    uint[] _roadmapDates,
     uint _claimPrice,
     address _icoLauncher,
-    address _tokenAddress,
-    address _cgsVoteAddress
+    address _tokenAddress
   ) public {
+    roadmapWei = _roadmapWei;
+    roadmapDates = _roadmapDates;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsVoteAddress = _cgsVoteAddress;
+    cgsVoteAddress = new CGSVote(this);
     vaultAddress = new Vault(this);
     currentClaim = 1;
 
@@ -236,12 +254,18 @@ contract Wevern is SafeMath {
     }
   }
 
+  /// @notice Withdraws money by the ICO launcher according to the roadmap
+  /// @dev Withdraws money by the ICO launcher according to the roadmap
+  function withdrawWei() public onlyIcoLauncher {
+
+  }
+
   /// @notice Whether a new claim can be open or not
   /// @dev Whether a new claim can be open or not
   /// @return True if new claims can be open
   function isClaimPeriod() public view returns(bool) {
 
-    return (lastClaim + TIME_BETWEEN_CLAIMS <= now);
+    return (stage == Stages.ClaimPeriod) || (lastClaim + TIME_BETWEEN_CLAIMS <= now);
   }
 
   /// @notice Whether ICO tokens can be exchanged for ether or not
@@ -249,7 +273,18 @@ contract Wevern is SafeMath {
   /// @return True if ICO tokens can be exchanged for ether
   function isRedeemStage() public view returns(bool) {
 
-    return (startRedeem + TIME_FOR_REDEEM <= now);
+    return (stage == Stages.Redeem) || (startRedeem + TIME_FOR_REDEEM <= now);
+  }
+
+  function getStage() public view returns (Stages r) {
+    if(isClaimPeriod())
+      r = Stages.ClaimPeriod;
+    else if(stage == Stages.ClaimOpen)
+      r = Stages.ClaimOpen;
+    else if(isRedeemStage())
+      r = Stages.Redeem;
+    else if(stage == Stages.ClaimEnded)
+      r = Stages.ClaimEnded;
   }
 
   /// @notice Changes the stage to _stage

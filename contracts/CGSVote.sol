@@ -57,11 +57,7 @@ contract CGSVote is SafeMath {
   Vote[] public votes; // Log of votes
   uint public currentVote; // id of the current vote
 
-  uint[] public roadMapMoney; // Wei
-  uint[] public roadMapDates; // Timestamps
-
   address public wevernAddress;
-  address public icoLauncherWallet;
 
   event ev_NewStage(uint indexed voteId, Stages stage);
 
@@ -90,22 +86,9 @@ contract CGSVote is SafeMath {
 
   /// @notice Creates a CGSVote smart contract
   /// @dev Creates a CGSVote smart contract.
-  /// roadMapMoney and roadMapDates must have the same length.
-  /// roadMapDates must be an ordered list.
-  /// @param _roadMapMoney List of wei amounts to be released
-  /// @param _roadMapDates List of timestamps when the wei amounts in roadMapMoney are going to be released
-  /// @param _wallet ICO launcher wallet address
-  function CGSVote(
-    uint[] _roadMapMoney,
-    uint[] _roadMapDates,
-    uint _claimPrice,
-    address _wallet,
-    address _token
-  ) public {
-    roadMapMoney = _roadMapMoney;
-    roadMapDates = _roadMapDates;
-    icoLauncherWallet = _wallet;
-    wevernAddress = new Wevern(_claimPrice, _wallet, _token, this);
+  /// @param _wevernAddress Address of the Wevern smart contract
+  function CGSVote(address _wevernAddress) public {
+    wevernAddress = _wevernAddress;
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
