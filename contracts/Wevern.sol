@@ -61,10 +61,9 @@ contract Wevern is SafeMath {
   // 0 = no tokens deposited in previous claims
   mapping (address => uint) public claimDeposited;
 
-  uint[] public roadmapWei; // Wei
-  uint[] public roadmapDates; // Timestamps
-
-  uint public weiToWithdraw; // Wei that the ICO launcher can withdraw to date
+  uint public weiPerSecond; // Wei that the ICO launcher can withdraw per second
+  uint public startDate; // Timestamp when the Wevern starts
+  uint public weiWithdrawToDate; // Wei that the ICO launcher has withdraw to date
 
   address public icoLauncherWallet; // ICO launcher token wallet
   address public cgsVoteAddress; // CGSVote smart contract address
@@ -108,25 +107,28 @@ contract Wevern is SafeMath {
   /// @dev Creates a Wevern smart contract.
   /// roadmapWei and roadmapDates must have the same length.
   /// roadmapDates must be an ordered list.
-  /// @param _roadmapWei List of wei amounts to be released
-  /// @param _roadmapDates List of timestamps when the wei amounts in roadmapWei are going to be released
+  /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
+  /// @param _cgsToken Address of the CGS token smart contract
+  /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function Wevern(
-    uint[] _roadmapWei,
-    uint[] _roadmapDates,
+    uint _weiPerSecond,
     uint _claimPrice,
     address _icoLauncher,
-    address _tokenAddress
+    address _tokenAddress,
+    address _cgsToken,
+    uint _startDate
   ) public {
-    roadmapWei = _roadmapWei;
-    roadmapDates = _roadmapDates;
+    require(weiPerSecond > 0);
+    weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsVoteAddress = new CGSVote(this);
+    cgsVoteAddress = new CGSVote(this, _cgsToken);
     vaultAddress = new Vault(this);
+    startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
 
     setStage(Stages.ClaimPeriod);
@@ -153,7 +155,7 @@ contract Wevern is SafeMath {
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
-      if(CGSVote(cgsVoteAddress).openClaim()) {
+      if(CGSVote(cgsVoteAddress).startVote()) {
         lastClaim = now;
         setStage(Stages.ClaimOpen);
       }
@@ -199,7 +201,7 @@ contract Wevern is SafeMath {
 
     if(claim != 0) {
       if(claim == currentClaim && stage == Stages.ClaimEnded) {
-        var (,, votesYes, votesNo) = CGSVote(cgsVoteAddress).votes(claim-1);
+        var (,, votesYes, votesNo,) = CGSVote(cgsVoteAddress).votes(claim-1);
 
         uint tokensToCashOut = userDeposits[msg.sender];
 
@@ -231,7 +233,7 @@ contract Wevern is SafeMath {
     // Number of tokens to exchange
     uint numTokens = ERC20(tokenAddress).allowance(msg.sender, this);
     // Calculate the amount of Wei to receive in exchange of the tokens
-    uint weiToSend = (numTokens * Vault(vaultAddress).etherBalance()) / ERC20(tokenAddress).totalSupply();
+    uint weiToSend = (numTokens * (Vault(vaultAddress).etherBalance() - calculateWeiToWithdrawAt(lastClaim))) / ERC20(tokenAddress).totalSupply();
 
     // Send Tokens to ICO launcher
     assert(ERC20(tokenAddress).transferFrom(msg.sender, icoLauncherWallet, numTokens));
@@ -257,7 +259,7 @@ contract Wevern is SafeMath {
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
   function withdrawWei() public onlyIcoLauncher {
-
+    calculateWeiToWithdrawAt(now);
   }
 
   /// @notice Whether a new claim can be open or not
@@ -285,6 +287,10 @@ contract Wevern is SafeMath {
       r = Stages.Redeem;
     else if(stage == Stages.ClaimEnded)
       r = Stages.ClaimEnded;
+  }
+
+  function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
+    return (date - startDate) * weiPerSecond - weiWithdrawToDate;
   }
 
   /// @notice Changes the stage to _stage

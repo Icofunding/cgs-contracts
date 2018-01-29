@@ -11,7 +11,7 @@ contract TestToken is ERC20, SafeMath {
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  function TestToken(address recipient, uint amount) {
+  function TestToken(address recipient, uint amount) public {
     balances[recipient] = amount;
     totalSupply = amount;
   }
