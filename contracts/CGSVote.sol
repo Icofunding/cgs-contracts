@@ -51,7 +51,7 @@ contract CGSVote is SafeMath {
     bool finalized;
     mapping (address => bytes32) secretVotes;
     mapping (address => bool) revealedVotes;
-    mapping (address => bool) revealed;
+    mapping (address => bool) hasRevealed;
   }
 
   mapping (address => uint) public userDeposits; // Number of CGS tokens (plus decimals).
@@ -82,8 +82,10 @@ contract CGSVote is SafeMath {
     if (votes[numVotes-1].stage == Stages.SecretVote && now >= votes[numVotes-1].date + TIME_TO_VOTE)
       setStage(Stages.RevealVote);
 
-    if (votes[numVotes-1].stage == Stages.RevealVote && now >= votes[numVotes-1].date + TIME_TO_VOTE + TIME_TO_REVEAL)
+    if (votes[numVotes-1].stage == Stages.RevealVote && now >= votes[numVotes-1].date + TIME_TO_VOTE + TIME_TO_REVEAL) {
       setStage(Stages.Settlement);
+      finalizeVote();
+    }
 
     _;
   }
@@ -95,6 +97,17 @@ contract CGSVote is SafeMath {
   function CGSVote(address _wevernAddress, address _cgsToken) public {
     wevernAddress = _wevernAddress;
     cgsToken = _cgsToken;
+  }
+
+  /// @notice Starts a vote
+  /// @dev Starts a vote
+  function startVote() public onlyWevernContract returns(bool) {
+    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, false);
+
+    votes.push(newVote);
+    numVotes++;
+
+    return true;
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...)
@@ -128,10 +141,10 @@ contract CGSVote is SafeMath {
     // Only users who vote can reveal their vote
     require(votes[numVotes-1].secretVotes[msg.sender].length > 0);
     // Check if the vote is already revealed
-    require(!votes[numVotes-1].revealed[msg.sender]);
+    require(!votes[numVotes-1].hasRevealed[msg.sender]);
 
     // Check the vote as revealed
-    votes[numVotes-1].revealed[msg.sender] = true;
+    votes[numVotes-1].hasRevealed[msg.sender] = true;
 
     // Check if he user voted yes or no to update the results
     if(keccak256(true, salt) == votes[numVotes-1].secretVotes[msg.sender]) {
@@ -146,9 +159,41 @@ contract CGSVote is SafeMath {
     return true;
   }
 
+  /// @notice Withdraws CGS tokens after bonus/penalization
+  /// @dev Withdraws CGS tokens after bonus/penalization
+  function withdrawTokens() public returns(bool) {
+    // Only if in Settlement stage or the user has not voted in the current vote and has CGS tokens deposited
+    require(userDeposits[msg.sender] > 0);
+
+    // Vote id where the user vote
+    uint idVote = voteIdDeposited[msg.sender];
+
+    require(votes[idVote].stage == Stages.Settlement);
+
+    // Did the vote succeed?
+    bool voteResult = (votes[idVote].votesYes > votes[idVote].votesNo);
+    // If the user revealed his vote and vote the same as the winner option
+    bool userWon = votes[idVote].hasRevealed[msg.sender] && (voteResult == votes[idVote].revealedVotes[msg.sender]);
+
+    uint tokensToWithdraw;
+    if(userWon) {
+
+    } else {
+      tokensToWithdraw = userDeposits[msg.sender] - userDeposits[msg.sender]*20/100;
+    }
+
+    // Update balance
+    userDeposits[msg.sender] = 0;
+
+    // Send tokens to the user
+    assert(ERC20(cgsToken).transfer(msg.sender, tokensToWithdraw));
+
+    return true;
+  }
+
   /// @notice Count the votes and calls Wevern to inform of the result
   /// @dev Count the votes and calls Wevern to inform of the result
-  function finalizeVote() public timedTransitions atStage(Stages.Settlement) {
+  function finalizeVote() private atStage(Stages.Settlement) {
     if(!votes[numVotes-1].finalized) {
       if(votes[numVotes-1].votesYes > votes[numVotes-1].votesNo)
         Wevern(wevernAddress).claimResult(true);
@@ -157,37 +202,6 @@ contract CGSVote is SafeMath {
 
       votes[numVotes-1].finalized = true;
     }
-  }
-
-  /// @notice Withdraws CGS tokens after bonus/penalization
-  /// @dev Withdraws CGS tokens after bonus/penalization
-  function withdrawTokens() public returns(bool) {
-    // Only if in Settlement stage or the user has not voted in the current vote and has CGS tokens deposited
-    require(userDeposits[msg.sender] > 0);
-
-    // If the user has voted in the current vote
-    if(votes[numVotes-1].secretVotes[msg.sender].length > 0) {
-      require(votes[numVotes-1].stage == Stages.Settlement); // It must be in Settlement stage
-
-      // If there are more votes saying that the ICO is not doing a proper use of the funds
-      bool successfulClaim = (votes[numVotes-1].votesNo > votes[numVotes-1].votesYes);
-
-    } else {
-      // The user has tokens deposited from previous votes
-    }
-
-    return true;
-  }
-
-  /// @notice Starts a vote
-  /// @dev Starts a vote
-  function startVote() public onlyWevernContract returns(bool) {
-    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, false);
-
-    votes.push(newVote);
-    numVotes++;
-
-    return true;
   }
 
   /// @notice Changes the stage to _stage
