@@ -48,19 +48,17 @@ contract CGSVote is SafeMath {
     Stages stage; // Current state of the vote
     uint votesYes; // Votes that the project is doing a proper use of the funds. Updated during Reveal stage
     uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
+    address callback; // The address to call when the vote ends
     mapping (address => bytes32) secretVotes; // Hashes of votes
     mapping (address => bool) revealedVotes; // Votes in plain text
     mapping (address => bool) hasRevealed; // True if the user has revealed is vote
     mapping (address => uint) userDeposits; // Amount of CGS tokens deposited for this vote.
   }
 
-  mapping (address => uint) public userDeposits; // Number of CGS tokens (plus decimals).
-  mapping (address => uint) public voteIdDeposited; // Vote id in which the user deposited the tokens
-
   Vote[] public votes; // Log of votes
   uint public numVotes; // Number of elements in the array votes
 
-  address public cgsToken;
+  address public cgsToken; // Address of the CGS token smart contract
 
   event ev_NewStage(uint indexed voteId, Stages stage);
   event ev_NewVote(uint indexed voteId, address who, uint amount);
@@ -74,12 +72,14 @@ contract CGSVote is SafeMath {
 
   // Perform timed transitions.
   modifier timedTransitions(uint voteId) {
-    if (votes[voteId].stage == Stages.SecretVote && now >= votes[voteId].date + TIME_TO_VOTE)
-      setStage(Stages.RevealVote);
+    Stages newStage = getStage(voteId);
 
-    if (votes[voteId].stage == Stages.RevealVote && now >= votes[voteId].date + TIME_TO_VOTE + TIME_TO_REVEAL) {
-      setStage(Stages.Settlement);
-      finalizeVote();
+    if(newStage != votes[voteId].stage) {
+      setStage(newStage);
+
+      // Executed only once, when the Settlement stage is set
+      if(newStage == Stages.Settlement)
+        finalizeVote();
     }
 
     _;
@@ -95,8 +95,8 @@ contract CGSVote is SafeMath {
   /// @notice Starts a vote
   /// @dev Starts a vote
   /// @returns the vote ID
-  function startVote() public returns(uint) {
-    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0);
+  function startVote(address _callback) public returns(uint) {
+    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback);
 
     votes.push(newVote);
     numVotes++;
@@ -173,6 +173,7 @@ contract CGSVote is SafeMath {
 
   /// @notice Withdraws CGS tokens after bonus/penalization
   /// @dev Withdraws CGS tokens after bonus/penalization
+  /// @param voteId ID of the vote
   function withdrawTokens(uint voteId)
     public
     timedTransitions(voteId)
@@ -213,21 +214,38 @@ contract CGSVote is SafeMath {
     return true;
   }
 
+  /// @notice Returns the actual stage of a vote
+  /// @dev Returns the actual stage of a vote
+  /// @param voteId ID of the votes
+  /// @returns the actual stage of a vote
+  function getStage(uint voteId) public view returns(Stages stage) {
+    stage = Stages.SecretVote;
+
+    if(now >= votes[voteId].date + TIME_TO_VOTE)
+      stage = Stages.SecretVote;
+
+    if(now >= votes[voteId].date + TIME_TO_VOTE + TIME_TO_REVEAL) {
+      stage = Stages.Settlement;
+    }
+  }
+
   /// @notice Count the votes and calls Wevern to inform of the result
   /// @dev Count the votes and calls Wevern to inform of the result
-  function finalizeVote() private atStage(Stages.Settlement) {
-    if(votes[numVotes-1].votesYes > votes[numVotes-1].votesNo)
-      Wevern(wevernAddress).claimResult(true);
+  /// @param voteId ID of the vote
+  function finalizeVote(uint voteId) private atStage(voteId, Stages.Settlement) {
+    if(votes[voteId].votesYes > votes[voteId].votesNo)
+      Wevern(votes[voteId].callback).voteResult(voteId, true);
     else
-      Wevern(wevernAddress).claimResult(false);
+      Wevern(votes[voteId].callback).voteResult(voteId, false);
   }
 
   /// @notice Changes the stage to _stage
   /// @dev Changes the stage to _stage
+  /// @param voteId ID of the vote
   /// @param _stage New stage
-  function setStage(Stages _stage) private {
-    votes[numVotes-1].stage = _stage;
+  function setStage(uint voteId, Stages _stage) private {
+    votes[voteId].stage = _stage;
 
-    ev_NewStage(numVotes-1, _stage);
+    ev_NewStage(voteId, _stage);
   }
 }
