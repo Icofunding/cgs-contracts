@@ -48,7 +48,6 @@ contract CGSVote is SafeMath {
     Stages stage; // Current state of the vote
     uint votesYes; // Votes that the project is doing a proper use of the funds. Updated during Reveal stage
     uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
-    bool finalized;
     mapping (address => bytes32) secretVotes;
     mapping (address => bool) revealedVotes;
     mapping (address => bool) hasRevealed;
@@ -64,6 +63,8 @@ contract CGSVote is SafeMath {
   address public cgsToken;
 
   event ev_NewStage(uint indexed voteId, Stages stage);
+  event ev_NewVote(uint indexed voteId, address who, uint amount);
+  event ev_NewReveal(uint indexed voteId, address who, uint amount, bool value);
 
   modifier onlyWevernContract() {
     require(msg.sender == wevernAddress);
@@ -102,7 +103,7 @@ contract CGSVote is SafeMath {
   /// @notice Starts a vote
   /// @dev Starts a vote
   function startVote() public onlyWevernContract returns(bool) {
-    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, false);
+    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0);
 
     votes.push(newVote);
     numVotes++;
@@ -118,7 +119,7 @@ contract CGSVote is SafeMath {
     require(numVotes > 0);
     // The user must withdraw first their tokens from previous votes
     // It can only vote once per Voting period
-    require(userDeposits[msg.sender] > 0);
+    require(userDeposits[msg.sender] == 0);
 
     uint amount = ERC20(cgsToken).allowance(msg.sender, this);
 
@@ -129,6 +130,8 @@ contract CGSVote is SafeMath {
     userDeposits[msg.sender] = amount;
 
     votes[numVotes-1].secretVotes[msg.sender] = secretVote;
+
+    ev_NewVote(numVotes-1, msg.sender, amount);
 
     return true;
   }
@@ -146,13 +149,17 @@ contract CGSVote is SafeMath {
     // Check the vote as revealed
     votes[numVotes-1].hasRevealed[msg.sender] = true;
 
-    // Check if he user voted yes or no to update the results
+    // Check if the user voted yes or no to update the results
     if(keccak256(true, salt) == votes[numVotes-1].secretVotes[msg.sender]) {
       votes[numVotes-1].revealedVotes[msg.sender] = true;
       votes[numVotes-1].votesYes += userDeposits[msg.sender];
+
+      ev_NewReveal(numVotes-1, msg.sender, userDeposits[msg.sender], true);
     } else if(keccak256(false, salt) == votes[numVotes-1].secretVotes[msg.sender]) {
       votes[numVotes-1].revealedVotes[msg.sender] = false;
       votes[numVotes-1].votesNo += userDeposits[msg.sender];
+
+      ev_NewReveal(numVotes-1, msg.sender, userDeposits[msg.sender], false);
     } else
       revert(); // Revert the tx if the reveal fails
 
@@ -162,12 +169,12 @@ contract CGSVote is SafeMath {
   /// @notice Withdraws CGS tokens after bonus/penalization
   /// @dev Withdraws CGS tokens after bonus/penalization
   function withdrawTokens() public returns(bool) {
-    // Only if in Settlement stage or the user has not voted in the current vote and has CGS tokens deposited
+    // Check if the user has any withdrawal pending
     require(userDeposits[msg.sender] > 0);
 
     // Vote id where the user vote
     uint idVote = voteIdDeposited[msg.sender];
-
+    // Only if in Settlement stage
     require(votes[idVote].stage == Stages.Settlement);
 
     // Did the vote succeed?
@@ -177,7 +184,16 @@ contract CGSVote is SafeMath {
 
     uint tokensToWithdraw;
     if(userWon) {
+      uint bonus;
+      if(voteResult) {
+        bonus = votes[idVote].votesNo*20/100;
 
+        tokensToWithdraw = userDeposits[msg.sender] + bonus*userDeposits[msg.sender]/votes[idVote].votesYes;
+      } else {
+        bonus = votes[idVote].votesYes*20/100;
+
+        tokensToWithdraw = userDeposits[msg.sender] + bonus*userDeposits[msg.sender]/votes[idVote].votesNo;
+      }
     } else {
       tokensToWithdraw = userDeposits[msg.sender] - userDeposits[msg.sender]*20/100;
     }
@@ -194,22 +210,18 @@ contract CGSVote is SafeMath {
   /// @notice Count the votes and calls Wevern to inform of the result
   /// @dev Count the votes and calls Wevern to inform of the result
   function finalizeVote() private atStage(Stages.Settlement) {
-    if(!votes[numVotes-1].finalized) {
-      if(votes[numVotes-1].votesYes > votes[numVotes-1].votesNo)
-        Wevern(wevernAddress).claimResult(true);
-      else
-        Wevern(wevernAddress).claimResult(false);
-
-      votes[numVotes-1].finalized = true;
-    }
+    if(votes[numVotes-1].votesYes > votes[numVotes-1].votesNo)
+      Wevern(wevernAddress).claimResult(true);
+    else
+      Wevern(wevernAddress).claimResult(false);
   }
 
   /// @notice Changes the stage to _stage
   /// @dev Changes the stage to _stage
   /// @param _stage New stage
   function setStage(Stages _stage) private {
-    votes[numVotes].stage = _stage;
+    votes[numVotes-1].stage = _stage;
 
-    ev_NewStage(numVotes, _stage);
+    ev_NewStage(numVotes-1, _stage);
   }
 }
