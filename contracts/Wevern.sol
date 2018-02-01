@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
-import './util/ERC20.sol';
-import './CGSVote.sol';
+import './interfaces/ERC20.sol';
+import './CGSBinaryVote.sol';
 import './Vault.sol';
 
 /*
@@ -126,7 +126,7 @@ contract Wevern is SafeMath {
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsVoteAddress = new CGSVote(this, _cgsToken);
+    cgsVoteAddress = new CGSBinaryVote(_cgsToken);
     vaultAddress = new Vault(this);
     startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
@@ -155,10 +155,9 @@ contract Wevern is SafeMath {
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
-      if(CGSVote(cgsVoteAddress).startVote()) {
-        lastClaim = now;
-        setStage(Stages.ClaimOpen);
-      }
+      CGSBinaryVote(cgsVoteAddress).startVote(this);
+      lastClaim = now;
+      setStage(Stages.ClaimOpen);
     }
 
     ev_DepositTokens(msg.sender, amount);
@@ -201,7 +200,7 @@ contract Wevern is SafeMath {
 
     if(claim != 0) {
       if(claim == currentClaim && stage == Stages.ClaimEnded) {
-        var (,, votesYes, votesNo,) = CGSVote(cgsVoteAddress).votes(claim-1);
+        var (,, votesYes, votesNo,) = CGSBinaryVote(cgsVoteAddress).votes(claim-1);
 
         uint tokensToCashOut = userDeposits[msg.sender];
 
@@ -255,13 +254,13 @@ contract Wevern is SafeMath {
       setStage(Stages.ClaimEnded);
     }
   }
-
+/*
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
   function withdrawWei() public onlyIcoLauncher {
     calculateWeiToWithdrawAt(now);
   }
-
+*/
   /// @notice Whether a new claim can be open or not
   /// @dev Whether a new claim can be open or not
   /// @return True if new claims can be open

@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
-import './Vault.sol';
-import './Wevern.sol';
+import './interfaces/BinaryVoteCallback.sol';
+import './interfaces/ERC20.sol';
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -21,9 +21,9 @@ import './Wevern.sol';
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/// @title CGSVote contract
+/// @title CGSBinaryVote contract
 /// @author Icofunding
-contract CGSVote is SafeMath {
+contract CGSBinaryVote is SafeMath {
   uint constant TIME_TO_VOTE = 7 days;
   uint constant TIME_TO_REVEAL = 3 days;
 
@@ -61,8 +61,9 @@ contract CGSVote is SafeMath {
   address public cgsToken; // Address of the CGS token smart contract
 
   event ev_NewStage(uint indexed voteId, Stages stage);
-  event ev_NewVote(uint indexed voteId, address who, uint amount);
-  event ev_NewReveal(uint indexed voteId, address who, uint amount, bool value);
+  event ev_NewVote(uint indexed voteId, address callback);
+  event ev_Vote(uint indexed voteId, address who, uint amount);
+  event ev_Reveal(uint indexed voteId, address who, uint amount, bool value);
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);
@@ -75,31 +76,33 @@ contract CGSVote is SafeMath {
     Stages newStage = getStage(voteId);
 
     if(newStage != votes[voteId].stage) {
-      setStage(newStage);
+      setStage(voteId, newStage);
 
       // Executed only once, when the Settlement stage is set
       if(newStage == Stages.Settlement)
-        finalizeVote();
+        finalizeVote(voteId);
     }
 
     _;
   }
 
-  /// @notice Creates a CGSVote smart contract
-  /// @dev Creates a CGSVote smart contract.
+  /// @notice Creates a CGSBinaryVote smart contract
+  /// @dev Creates a CGSBinaryVote smart contract.
   /// @param _cgsToken Address of the CGS token smart contract
-  function CGSVote(address _cgsToken) public {
+  function CGSBinaryVote(address _cgsToken) public {
     cgsToken = _cgsToken;
   }
 
   /// @notice Starts a vote
   /// @dev Starts a vote
-  /// @returns the vote ID
+  /// @return the vote ID
   function startVote(address _callback) public returns(uint) {
     Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback);
 
     votes.push(newVote);
     numVotes++;
+
+    ev_NewVote(numVotes-1, _callback);
 
     return numVotes-1;
   }
@@ -129,7 +132,7 @@ contract CGSVote is SafeMath {
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
 
-    ev_NewVote(voteId, msg.sender, numTokens);
+    ev_Vote(voteId, msg.sender, numTokens);
 
     return true;
   }
@@ -158,13 +161,13 @@ contract CGSVote is SafeMath {
       votes[voteId].revealedVotes[msg.sender] = true;
       votes[voteId].votesYes += votes[voteId].userDeposits[msg.sender];
 
-      ev_NewReveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], true);
+      ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], true);
     } else if(keccak256(false, salt) == votes[voteId].secretVotes[msg.sender]) {
       // Vote false
       votes[voteId].revealedVotes[msg.sender] = false;
       votes[voteId].votesNo += votes[voteId].userDeposits[msg.sender];
 
-      ev_NewReveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], false);
+      ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], false);
     } else
       revert(); // Revert the tx if the reveal fails
 
@@ -217,7 +220,7 @@ contract CGSVote is SafeMath {
   /// @notice Returns the actual stage of a vote
   /// @dev Returns the actual stage of a vote
   /// @param voteId ID of the votes
-  /// @returns the actual stage of a vote
+  /// @return the actual stage of a vote
   function getStage(uint voteId) public view returns(Stages stage) {
     stage = Stages.SecretVote;
 
@@ -229,14 +232,14 @@ contract CGSVote is SafeMath {
     }
   }
 
-  /// @notice Count the votes and calls Wevern to inform of the result
-  /// @dev Count the votes and calls Wevern to inform of the result
+  /// @notice Count the votes and calls BinaryVoteCallback to inform of the result
+  /// @dev Count the votes and calls BinaryVoteCallback to inform of the result
   /// @param voteId ID of the vote
   function finalizeVote(uint voteId) private atStage(voteId, Stages.Settlement) {
     if(votes[voteId].votesYes > votes[voteId].votesNo)
-      Wevern(votes[voteId].callback).voteResult(voteId, true);
+      BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, true);
     else
-      Wevern(votes[voteId].callback).voteResult(voteId, false);
+      BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, false);
   }
 
   /// @notice Changes the stage to _stage
