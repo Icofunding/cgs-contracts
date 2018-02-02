@@ -20,5 +20,5 @@ pragma solidity ^0.4.18;
 /// @title voteCallback interface
 /// @author Icofunding
 contract BinaryVoteCallback {
-  function binaryVoteResult(uint voteId, bool result) public returns(uint);
+  function binaryVoteResult(uint voteId, bool result) public returns(bool);
 }

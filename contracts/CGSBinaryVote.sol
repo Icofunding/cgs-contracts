@@ -28,14 +28,12 @@ contract CGSBinaryVote is SafeMath {
   uint constant TIME_TO_REVEAL = 3 days;
 
   /*
-   * - Ok: No claim has been ever open
    * - SecretVote: Users deposit their CGS tokens and a hash of their vote.
    *   This stage last for TIME_TO_VOTE.
    * - RevealVote: Users must reveal their vote in the previous stage.
    *   This stage last for TIME_TO_REVEAL.
    * - Settlement: Users can withdraw their tokens with a bonus or penalization,
    *   depending on the outcome of the vote.
-   *   This stage remains until a new claim is open
    */
   enum Stages {
     SecretVote,
@@ -156,13 +154,13 @@ contract CGSBinaryVote is SafeMath {
     votes[voteId].hasRevealed[msg.sender] = true;
 
     // Check if the user voted yes or no to update the results
-    if(keccak256(true, salt) == votes[voteId].secretVotes[msg.sender]) {
+    if(checkReveal(voteId, msg.sender, true, salt)) {
       // Vote true
       votes[voteId].revealedVotes[msg.sender] = true;
       votes[voteId].votesYes += votes[voteId].userDeposits[msg.sender];
 
       ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], true);
-    } else if(keccak256(false, salt) == votes[voteId].secretVotes[msg.sender]) {
+    } else if(checkReveal(voteId, msg.sender, false, salt)) {
       // Vote false
       votes[voteId].revealedVotes[msg.sender] = false;
       votes[voteId].votesNo += votes[voteId].userDeposits[msg.sender];
@@ -221,16 +219,65 @@ contract CGSBinaryVote is SafeMath {
   /// @dev Returns the actual stage of a vote
   /// @param voteId ID of the votes
   /// @return the actual stage of a vote
-  function getStage(uint voteId) public view returns(Stages stage) {
-    stage = Stages.SecretVote;
+  function getStage(uint voteId) public view returns(Stages) {
+    Stages stage = Stages.SecretVote;
 
     if(now >= votes[voteId].date + TIME_TO_VOTE)
-      stage = Stages.SecretVote;
+      stage = Stages.RevealVote;
 
-    if(now >= votes[voteId].date + TIME_TO_VOTE + TIME_TO_REVEAL) {
+    if(now >= votes[voteId].date + TIME_TO_VOTE + TIME_TO_REVEAL)
       stage = Stages.Settlement;
-    }
+
+    return stage;
   }
+
+  /// @notice Returns the vote of the user
+  /// @dev Returns the vote of the user
+  /// @param voteId ID of the vote
+  /// @param who Address of the user
+  /// @return the vote of the user
+  function getRevealedVotes(uint voteId, address who) public view returns(bool) {
+    require(hasUserRevealed(voteId, who));
+
+    return votes[voteId].revealedVotes[who];
+  }
+
+  /// @notice Returns if the user has revealed his vote
+  /// @dev Returns if the user has revealed his vote
+  /// @param voteId ID of the vote
+  /// @param who Address of the user
+  /// @return true if the user has revealed his vote
+  function hasUserRevealed(uint voteId, address who) public view returns(bool) {
+
+    return votes[voteId].hasRevealed[who];
+  }
+
+  /// @notice Returns amount of tokens deposited by a user in a vote
+  /// @dev Returns amount of tokens deposited by a user in a vote
+  /// @param voteId ID of the vote
+  /// @param who Address of the user
+  /// @return the amount of tokens deposited by a user in a vote
+  function getUserDeposit(uint voteId, address who) public view returns(uint) {
+
+    return votes[voteId].userDeposits[who];
+  }
+
+  /// @notice Computes the hash of the given data to check if the vote can be revealed
+  /// @dev Computes the hash of the given data to check if the vote can be revealed
+  /// @param voteId ID of the vote
+  /// @param user Voter
+  /// @param revealedVote What the user vote
+  /// @param salt ID of the vote
+  /// @return true if the vote can be reveales
+  function checkReveal(uint voteId, address user, bool revealedVote, bytes32 salt)
+    internal
+    view
+    returns(bool)
+  {
+
+    return keccak256(revealedVote, salt) == votes[voteId].secretVotes[user];
+  }
+
 
   /// @notice Count the votes and calls BinaryVoteCallback to inform of the result
   /// @dev Count the votes and calls BinaryVoteCallback to inform of the result
