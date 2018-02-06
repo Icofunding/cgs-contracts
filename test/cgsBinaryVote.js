@@ -19,21 +19,16 @@ contract('CGSBinaryVote', function(accounts) {
   let owner;
   let tokenHolder1;
   let tokenHolder2;
-  let icoLauncher;
 
   let fakeCGS;
   let HashContract;
   let VoteReceiverContract;
-
-  let claimPrice = 700;
 
   before(async () => {
     owner = accounts[0];
     tokenHolder1 = accounts[1];
     tokenHolder2 = accounts[2];
     tokenHolder3 = accounts[3];
-
-    claimPrice = 700;
 
     HashContract = await Hash.new();
     VoteReceiverContract = await VoteReceiver.new();

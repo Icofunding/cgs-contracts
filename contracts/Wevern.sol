@@ -56,7 +56,8 @@ contract Wevern is SafeMath {
   Stages public stage; // Current stage. Returns uint.
 
   uint public currentClaim; // currentClaim
-  mapping (uint => bool) public claimResults; // If the claims have succeded or not
+  mapping (uint => bool) public claimResults; // If everything is ok with the project or not
+  mapping (uint => uint) public voteIds; // Ids of the votes in CGSBinaryVote
   // claim in which the token holder has deposited tokens.
   // 0 = no tokens deposited in previous claims
   mapping (address => uint) public claimDeposited;
@@ -111,22 +112,22 @@ contract Wevern is SafeMath {
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  /// @param _cgsToken Address of the CGS token smart contract
+  /// @param _cgsVoteAddress Address of the CGS token smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function Wevern(
     uint _weiPerSecond,
     uint _claimPrice,
     address _icoLauncher,
     address _tokenAddress,
-    address _cgsToken,
+    address _cgsVoteAddress,
     uint _startDate
   ) public {
-    require(weiPerSecond > 0);
+    require(_weiPerSecond > 0);
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsVoteAddress = new CGSBinaryVote(_cgsToken);
+    cgsVoteAddress = _cgsVoteAddress;
     vaultAddress = new Vault(this);
     startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
@@ -136,59 +137,59 @@ contract Wevern is SafeMath {
 
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
-  function depositTokens() public backToClaimPeriod returns(bool) {
+  /// @param numTokens Number of tokens
+  function depositTokens(uint numTokens) public backToClaimPeriod returns(bool) {
     // Check stage
     require(stage == Stages.ClaimPeriod);
     // The user has no tokens deposited in previous claims
     require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
+    // Enough tokens allowed
+    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
-    // Send the approved amount of tokens
-    uint amount = ERC20(tokenAddress).allowance(msg.sender, this);
-
-    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, amount));
+    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
 
     // Update balances
-    userDeposits[msg.sender] += amount;
-    totalDeposit += amount;
+    userDeposits[msg.sender] += numTokens;
+    totalDeposit += numTokens;
 
     claimDeposited[msg.sender] = currentClaim;
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
-      CGSBinaryVote(cgsVoteAddress).startVote(this);
+      voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
       setStage(Stages.ClaimOpen);
     }
 
-    ev_DepositTokens(msg.sender, amount);
+    ev_DepositTokens(msg.sender, numTokens);
 
     return true;
   }
 
-  /// @notice Withdraws tokens
-  /// @dev Withdraws tokens
-  /// @param amount Number of tokens
-  function withdrawTokens(uint amount) public backToClaimPeriod returns(bool) {
+  /// @notice Withdraws tokens during the Claim period
+  /// @dev Withdraws tokens during the Claim period
+  /// @param numTokens Number of tokens
+  function withdrawTokens(uint numTokens) public backToClaimPeriod returns(bool) {
     // Check stage
     require(stage == Stages.ClaimPeriod);
     // Enough tokens deposited
-    require(userDeposits[msg.sender] >= amount);
+    require(userDeposits[msg.sender] >= numTokens);
     // The tokens are doposited for the current claim.
     // If the tokens are from previous claims, the user should cashOut instead
     require(claimDeposited[msg.sender] == currentClaim);
 
     // Update balances
-    userDeposits[msg.sender] -= amount;
-    totalDeposit -= amount;
+    userDeposits[msg.sender] -= numTokens;
+    totalDeposit -= numTokens;
 
     // No tokens in this (or any) claim
     if(userDeposits[msg.sender] == 0)
       claimDeposited[msg.sender] = 0;
 
     // Send the tokens to the user
-    assert(ERC20(tokenAddress).transfer(msg.sender, amount));
+    assert(ERC20(tokenAddress).transfer(msg.sender, numTokens));
 
-    ev_WithdrawTokens(msg.sender, amount);
+    ev_WithdrawTokens(msg.sender, numTokens);
 
     return true;
   }
@@ -199,23 +200,22 @@ contract Wevern is SafeMath {
     uint claim = claimDeposited[msg.sender];
 
     if(claim != 0) {
-      if(claim == currentClaim && stage == Stages.ClaimEnded) {
-        var (,, votesYes, votesNo,) = CGSBinaryVote(cgsVoteAddress).votes(claim-1);
-
+      if(claim != currentClaim || (claim == currentClaim && stage == Stages.ClaimEnded)) {
+        bool isProjectOk = claimResults[claim];
         uint tokensToCashOut = userDeposits[msg.sender];
 
+        // Update balance
+        userDeposits[msg.sender] = 0;
+        claimDeposited[msg.sender] = 0;
+
         // If the claim does not succeded
-        if(votesYes >= votesNo) {
-          // 1% penalization goes to ICO launcher
+        if(isProjectOk) {
+          // 1% penalization goes to the ICO launcher
           uint tokensToIcoLauncher = tokensToCashOut/100;
           tokensToCashOut -= tokensToIcoLauncher;
 
           assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
         }
-
-        // Update balance
-        userDeposits[msg.sender] = 0;
-        claimDeposited[msg.sender] = 0;
 
         // Cash out
         assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
@@ -225,12 +225,13 @@ contract Wevern is SafeMath {
 
   /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
   /// @dev Exchange tokens for ether if a claim success. Executed after approve(...)
-  function redeem() public endRedeemPeriod returns(bool) {
+  /// @param numTokens Number of tokens
+  function redeem(uint numTokens) public endRedeemPeriod returns(bool) {
     // Check stage
     require(stage == Stages.Redeem);
+    // Enough tokens allowed
+    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
-    // Number of tokens to exchange
-    uint numTokens = ERC20(tokenAddress).allowance(msg.sender, this);
     // Calculate the amount of Wei to receive in exchange of the tokens
     uint weiToSend = (numTokens * (Vault(vaultAddress).etherBalance() - calculateWeiToWithdrawAt(lastClaim))) / ERC20(tokenAddress).totalSupply();
 
@@ -244,14 +245,20 @@ contract Wevern is SafeMath {
 
   /// @notice Receives the result of a claim
   /// @dev Receives the result of a claim
-  function claimResult(bool claimSucceed) public onlyCGSVote {
-    claimResults[currentClaim] = claimSucceed;
+  /// @param voteId id of the vote
+  /// @param voteResult Outcome of the vote
+  function binaryVoteResult(uint voteId, bool voteResult) public onlyCGSVote {
+    // To make sure that the Id of the vote is the one expected
+    require(voteIds[currentClaim] == voteId);
 
-    if(claimSucceed) {
-      setStage(Stages.Redeem);
-      startRedeem = now;
-    } else {
+    claimResults[currentClaim] = voteResult;
+
+    if(voteResult) {
       setStage(Stages.ClaimEnded);
+    } else {
+      setStage(Stages.Redeem);
+
+      startRedeem = now;
     }
   }
 /*
