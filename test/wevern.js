@@ -1,4 +1,5 @@
 const Wevern = artifacts.require("./Wevern.sol");
+const Vault = artifacts.require("./Vault.sol");
 const TestToken = artifacts.require("./test/TestToken.sol");
 const FakeCGSBinaryVote = artifacts.require("./test/FakeCGSBinaryVote.sol");
 
@@ -200,12 +201,6 @@ contract('Wevern', function(accounts) {
     assert.equal(REDEEM_STAGE, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
   });
 
-  it("Cash out the last claim when succeded");
-  it("Cash out the last claim when did not succeed");
-  it("Cash out an old claim");
-  it("Cash out with 0 tokens deposited shouldn't return any token");
-  it("Cash out the last claim before it ends should fail");
-
   it("Redeem tokens for ether", async function() {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
@@ -233,15 +228,81 @@ contract('Wevern', function(accounts) {
     await WevernContract.redeem(numTokensToRedeem, {from: tokenHolder1});
 
     // To make sure that the balances are updated correctly
-    //assert.equal(weiToDeposit, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
+    let VaultContract = Vault.at(await WevernContract.vaultAddress.call());
+    let weiToWithdraw = 0;
+    // TODO: Test the amount of ether sent to the token holder from the Vault. The formula have to change.
+    //assert.equal(weiToDeposit - weiToWithdraw, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
+    // The tokens have move from ICO holder to ICO launcher
     assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
     assert.equal(numTokensToRedeem, (await TestTokenContract.balanceOf.call(icoLauncher)).toNumber(), "incorrect value");
   });
 
   it("Redeem 0 tokens");
+
   it("Redeem in a different stage should fail");
 
+  it("Cash out the last claim when succeded", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let WevernContract = await Wevern.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
+
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(WevernContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await WevernContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await WevernContract.voteIds.call(currentClaim)).toNumber(), false);
+
+    // Cash out
+    await WevernContract.cashOut({from: tokenHolder1});
+
+    assert.equal(0, (await WevernContract.claimDeposited.call(tokenHolder1)).toNumber(), "incorrect claim number");
+    assert.equal(0, (await WevernContract.userDeposits.call(tokenHolder1)).toNumber(), "incorrect number of tokens deposited by user");
+    // The tokens have move from Contract to ICO launcher
+    assert.equal(0, (await TestTokenContract.balanceOf.call(WevernContract.address)).toNumber(), "incorrect value");
+    assert.equal(icoInitialSupply, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
+  });
+
+  it("Cash out the last claim when did not succeed", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let WevernContract = await Wevern.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
+
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(WevernContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await WevernContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await WevernContract.voteIds.call(currentClaim)).toNumber(), true);
+
+    // Cash out
+    await WevernContract.cashOut({from: tokenHolder1});
+
+    assert.equal(0, (await WevernContract.claimDeposited.call(tokenHolder1)).toNumber(), "incorrect claim number");
+    assert.equal(0, (await WevernContract.userDeposits.call(tokenHolder1)).toNumber(), "incorrect number of tokens deposited by user");
+    // The tokens have move from Contract to ICO launcher
+    assert.equal(0, (await TestTokenContract.balanceOf.call(WevernContract.address)).toNumber(), "incorrect value");
+    assert.equal(icoInitialSupply - numTokensToDeposit*0.01, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
+    assert.equal(numTokensToDeposit*0.01, (await TestTokenContract.balanceOf.call(icoLauncher)).toNumber(), "incorrect value");
+  });
+
+  it("Cash out an old claim");
+  it("Cash out with 0 tokens deposited shouldn't return any token");
+  it("Cash out the last claim before it ends should fail");
+
   it("Check stages");
+
+  it("Withdraw ether by ICO launcher");
+  it("Withdraw ether by non-ICO launcher should fail");
+  it("Withdraw ether with a claim open should fail");
 
   // Also test modifiers to change stage
 });

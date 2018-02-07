@@ -201,7 +201,7 @@ contract Wevern is SafeMath {
     uint claim = claimDeposited[msg.sender];
 
     if(claim != 0) {
-      if(claim != currentClaim || (claim == currentClaim && stage == Stages.ClaimEnded)) {
+      if(claim != currentClaim || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
         bool isProjectOk = claimResults[claim];
         uint tokensToCashOut = userDeposits[msg.sender];
 
