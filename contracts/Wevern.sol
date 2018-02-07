@@ -74,26 +74,31 @@ contract Wevern is SafeMath {
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
 
+  modifier atStage(Stages _stage) {
+    require(stage == _stage);
+
+    _;
+  }
+
+  modifier timedTransitions() {
+    Stages newStage = getStage();
+
+    if(newStage != stage) {
+      setStage(newStage);
+
+      // Executed only once, when the a claim ends
+      if(newStage == Stages.ClaimPeriod) {
+        totalDeposit = 0;
+        currentClaim++;
+        setStage(Stages.ClaimPeriod);
+      }
+    }
+
+    _;
+  }
+
   modifier onlyCGSVote() {
     require(msg.sender == cgsVoteAddress);
-
-    _;
-  }
-
-  modifier backToClaimPeriod() {
-    if(stage != Stages.ClaimPeriod && isClaimPeriod()) {
-      totalDeposit = 0;
-      currentClaim++;
-      setStage(Stages.ClaimPeriod);
-    }
-
-    _;
-  }
-
-  modifier endRedeemPeriod() {
-    if(stage == Stages.Redeem && isRedeemStage()) {
-      setStage(Stages.ClaimEnded);
-    }
 
     _;
   }
@@ -138,9 +143,7 @@ contract Wevern is SafeMath {
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   /// @param numTokens Number of tokens
-  function depositTokens(uint numTokens) public backToClaimPeriod returns(bool) {
-    // Check stage
-    require(stage == Stages.ClaimPeriod);
+  function depositTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // The user has no tokens deposited in previous claims
     require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
     // Enough tokens allowed
@@ -169,9 +172,7 @@ contract Wevern is SafeMath {
   /// @notice Withdraws tokens during the Claim period
   /// @dev Withdraws tokens during the Claim period
   /// @param numTokens Number of tokens
-  function withdrawTokens(uint numTokens) public backToClaimPeriod returns(bool) {
-    // Check stage
-    require(stage == Stages.ClaimPeriod);
+  function withdrawTokens(uint numTokens) public atStage(Stages.ClaimPeriod) returns(bool) {
     // Enough tokens deposited
     require(userDeposits[msg.sender] >= numTokens);
     // The tokens are doposited for the current claim.
@@ -196,7 +197,7 @@ contract Wevern is SafeMath {
 
   /// @notice Withdraws all tokens after a claim finished
   /// @dev Withdraws all tokens after a claim finished
-  function cashOut() public endRedeemPeriod backToClaimPeriod returns(bool) {
+  function cashOut() public timedTransitions returns(bool) {
     uint claim = claimDeposited[msg.sender];
 
     if(claim != 0) {
@@ -226,9 +227,7 @@ contract Wevern is SafeMath {
   /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
   /// @dev Exchange tokens for ether if a claim success. Executed after approve(...)
   /// @param numTokens Number of tokens
-  function redeem(uint numTokens) public endRedeemPeriod returns(bool) {
-    // Check stage
-    require(stage == Stages.Redeem);
+  function redeem(uint numTokens) public timedTransitions atStage(Stages.Redeem) returns(bool) {
     // Enough tokens allowed
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
@@ -254,8 +253,10 @@ contract Wevern is SafeMath {
     claimResults[currentClaim] = voteResult;
 
     if(voteResult) {
+      // Everything is ok with the project
       setStage(Stages.ClaimEnded);
     } else {
+      // Meh, the CGS voters thin that the funds are not well managed
       setStage(Stages.Redeem);
 
       startRedeem = now;
@@ -268,31 +269,20 @@ contract Wevern is SafeMath {
     calculateWeiToWithdrawAt(now);
   }
 */
-  /// @notice Whether a new claim can be open or not
-  /// @dev Whether a new claim can be open or not
-  /// @return True if new claims can be open
-  function isClaimPeriod() public view returns(bool) {
 
-    return (stage == Stages.ClaimPeriod) || (lastClaim + TIME_BETWEEN_CLAIMS <= now);
-  }
+  /// @notice Returns the actual stage of the claim
+  /// @dev Returns the actual stage of the claim
+  /// @return the actual stage of the claim
+  function getStage() public view returns(Stages) {
+    Stages s = stage;
 
-  /// @notice Whether ICO tokens can be exchanged for ether or not
-  /// @dev Whether ICO tokens can be exchanged for ether or not
-  /// @return True if ICO tokens can be exchanged for ether
-  function isRedeemStage() public view returns(bool) {
+    if(s == Stages.Redeem && (startRedeem + TIME_FOR_REDEEM <= now))
+      s = Stages.ClaimEnded;
 
-    return (stage == Stages.Redeem) || (startRedeem + TIME_FOR_REDEEM <= now);
-  }
+    if(s == Stages.ClaimEnded && (lastClaim + TIME_BETWEEN_CLAIMS <= now))
+      s = Stages.ClaimPeriod;
 
-  function getStage() public view returns (Stages r) {
-    if(isClaimPeriod())
-      r = Stages.ClaimPeriod;
-    else if(stage == Stages.ClaimOpen)
-      r = Stages.ClaimOpen;
-    else if(isRedeemStage())
-      r = Stages.Redeem;
-    else if(stage == Stages.ClaimEnded)
-      r = Stages.ClaimEnded;
+    return s;
   }
 
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {

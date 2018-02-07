@@ -5,6 +5,10 @@ const FakeCGSBinaryVote = artifacts.require("./test/FakeCGSBinaryVote.sol");
 contract('Wevern', function(accounts) {
   const ONE_DAY = 24*3600;
   const NOW = Math.floor(Date.now() / 1000);
+  const CLAIM_PERIOD_STAGE = 0;
+  const CLAIM_OPEN_STAGE = 1;
+  const REDEEM_STAGE = 2;
+  const CLAIM_ENDED_STAGE = 3;
 
   let owner;
   let tokenHolder1;
@@ -37,7 +41,7 @@ contract('Wevern', function(accounts) {
     assert.equal(icoLauncher, await WevernContract.icoLauncherWallet.call(), "incorrect _icoLauncherWallet");
     assert.equal(TestTokenContract.address, await WevernContract.tokenAddress.call(), "incorrect tokenAddress");
     assert.equal(FakeCGSBinaryVoteContract.address, await WevernContract.cgsVoteAddress.call(), "incorrect cgsVoteAddress");
-    assert.equal(0, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
+    assert.equal(CLAIM_PERIOD_STAGE, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
     assert.equal(1, (await WevernContract.currentClaim.call()).toNumber(), "incorrect current claim");
     assert.equal(0, (await WevernContract.totalDeposit.call()).toNumber(), "incorrect total deposit");
     assert.equal(0, (await WevernContract.lastClaim.call()).toNumber(), "incorrect lastClaim");
@@ -89,7 +93,7 @@ contract('Wevern', function(accounts) {
 
     // Still not enough
     assert.isTrue(await FakeCGSBinaryVoteContract.isVoteOpen.call(), "incorrect value");
-    assert.equal(1, await WevernContract.stage.call(), "incorrect value");
+    assert.equal(CLAIM_OPEN_STAGE, await WevernContract.stage.call(), "incorrect value");
 
     // To make sure that the balances are updated correctly
     assert.equal(numTokensToDeposit*2, (await TestTokenContract.balanceOf.call(WevernContract.address)).toNumber(), "incorrect number of tokens deposited");
@@ -154,38 +158,46 @@ contract('Wevern', function(accounts) {
   it("Withdraw more tokens than deposited should fail");
   it("Withdraw tokens from previous claims should fail");
 
-  it("Receive a claim result: true", async function() {
+  it("Receive a voting result: true, everything is ok with the project", async function() {
     let icoInitialSupply = 1000;
-    let roadmapWei = [100, 200, 800, 5000];
-    let roadmapDates = [NOW, NOW + ONE_DAY, NOW + ONE_DAY*2, NOW + ONE_DAY*3];
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
-    let WevernContract = await Wevern.new(roadmapWei, roadmapDates, claimPrice, icoLauncher, TestTokenContract.address);
+    let WevernContract = await Wevern.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
-    // Check the event
-    await WevernContract.claimResult(true, {from: fakeCGS});
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(WevernContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await WevernContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await WevernContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // To make sure that the balances are updated correctly
-    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
     assert.isTrue(await WevernContract.claimResults.call(currentClaim), "incorrect value");
-    assert.equal(2, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
+    assert.equal(CLAIM_ENDED_STAGE, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
   });
 
-  it("Receive a claim result: false", async function() {
+  it("Receive a voting result: false, there are issues with the project", async function() {
     let icoInitialSupply = 1000;
-    let roadmapWei = [100, 200, 800, 5000];
-    let roadmapDates = [NOW, NOW + ONE_DAY, NOW + ONE_DAY*2, NOW + ONE_DAY*3];
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
-    let WevernContract = await Wevern.new(claimPrice, icoLauncher, TestTokenContract.address);
+    let WevernContract = await Wevern.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
-    // Check the event
-    await WevernContract.claimResult(false, {from: fakeCGS});
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(WevernContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await WevernContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await WevernContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // To make sure that the balances are updated correctly
-    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
     assert.isFalse(await WevernContract.claimResults.call(currentClaim), "incorrect value");
-    assert.equal(3, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
+    assert.equal(REDEEM_STAGE, (await WevernContract.stage.call()).toNumber(), "incorrect stage");
   });
 
   it("Cash out the last claim when succeded");
@@ -194,7 +206,38 @@ contract('Wevern', function(accounts) {
   it("Cash out with 0 tokens deposited shouldn't return any token");
   it("Cash out the last claim before it ends should fail");
 
-  it("Redeem tokens for ether");
+  it("Redeem tokens for ether", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let numTokensToRedeem = 100;
+    let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("2", "Ether");
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let WevernContract = await Wevern.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
+
+    // Simulate ICO deposit
+    let VaultAddress = await WevernContract.vaultAddress.call()
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
+
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(WevernContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await WevernContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await WevernContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await WevernContract.voteIds.call(currentClaim)).toNumber(), false);
+
+    // Approve and transferFrom to redeem tokens
+    await TestTokenContract.approve(WevernContract.address, numTokensToRedeem, {from: tokenHolder1});
+    await WevernContract.redeem(numTokensToRedeem, {from: tokenHolder1});
+
+    // To make sure that the balances are updated correctly
+    //assert.equal(weiToDeposit, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
+    assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
+    assert.equal(numTokensToRedeem, (await TestTokenContract.balanceOf.call(icoLauncher)).toNumber(), "incorrect value");
+  });
+
   it("Redeem 0 tokens");
   it("Redeem in a different stage should fail");
 

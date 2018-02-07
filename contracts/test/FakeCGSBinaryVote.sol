@@ -16,7 +16,7 @@ contract FakeCGSBinaryVote {
     return 1;
   }
 
-  function finalizeVote(bool result) public {
-    BinaryVoteCallback(callback).binaryVoteResult(1, result);
+  function finalizeVote(uint voteId, bool result) public {
+    BinaryVoteCallback(callback).binaryVoteResult(voteId, result);
   }
 }
