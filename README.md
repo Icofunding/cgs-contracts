@@ -14,7 +14,6 @@ For the first version, there will be three smart contracts for each ICO:
 * Truffle installed
 
 ## Testing
-(Not yet)
 
 ```
 Truffle test
