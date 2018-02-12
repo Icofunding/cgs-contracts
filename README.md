@@ -3,9 +3,9 @@
 Smart contracts for the CGS platform.
 
 For the first version, there will be three smart contracts for each ICO:
-- **CGS**: Manages the vote among CGS holders.
-- **Claim**: Collects ICO tokens to create claims.
-- **Vault**: Stores the Ether collected.
+- **CGSVote**: Manages the vote among CGS holders.
+- **Wevern**: Collects ICO tokens to create claims and manage the funds at Vault.
+- **Vault**: Stores the Ether collected. it is created from Wevern
 
 ## Requirements
 
@@ -20,6 +20,7 @@ Truffle test
 ```
 
 ## Deployment
+
 ```
 Truffle migrate
 ```
@@ -30,15 +31,24 @@ To obtain the ABI, you will need to compile the smart contract:
 ```
 Truffle compile
 ```
+
 A new folder called "build" will be created with multiple json files. One json per smart contract. Each file has a abi attribute inside with the ABI of the smart contract.
 
 
-To obtain the address, you first have to deploy the CGS. Its address is going to be written in the console.
+To obtain the address, you first have to deploy the CGS and the Wevern. Its addresses are going to be written in the console.
+
 ```
 Truffle migrade
 ```
 
-The Vault and Claim are created from CGS. Their addresses can be accessed using its public methods.
+The Vault is created from Wevern. Its address can be accessed using public methods
+
+## TODO
+
+* Update Interface documentation
+* Create Wevern factory to simplify the deployment
+* Rename Wevern
+* Fix Redeem formula
 
 ## Interface
 
