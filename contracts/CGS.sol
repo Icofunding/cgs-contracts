@@ -73,6 +73,7 @@ contract CGS is SafeMath {
 
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
+  event ev_OpenClaim(uint voteId);
 
   modifier atStage(Stages _stage) {
     require(stage == _stage);
@@ -162,6 +163,8 @@ contract CGS is SafeMath {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
       setStage(Stages.ClaimOpen);
+
+      ev_OpenClaim(voteIds[currentClaim]);
     }
 
     ev_DepositTokens(msg.sender, numTokens);
@@ -285,6 +288,9 @@ contract CGS is SafeMath {
     return s;
   }
 
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
     return (date - startDate) * weiPerSecond - weiWithdrawToDate;
   }

@@ -25,32 +25,19 @@ contract Vault is SafeMath {
   uint public totalCollected; // Wei
   uint public etherBalance; // Wei
 
-  address public claimAddress;
+  address public cgsAddress;
 
   event ev_Deposit(uint amount);
-  event ev_Withdraw(address to, uint value);
+  event ev_Withdraw(address to, uint amount);
 
-  modifier onlyClaim() {
-    require(msg.sender == claimAddress);
+  modifier onlyCGS() {
+    require(msg.sender == cgsAddress);
 
       _;
   }
 
-  function Vault(address _claimAddress) public {
-    claimAddress = _claimAddress;
-  }
-
-  /// @notice Sends ether to the ICO launcher/token holders
-  /// @dev Sends ether to the ICO launcher/token holders
-  /// @param to Account where the funds are going to be sent
-  /// @param amount Amount of Wei to withdraw
-  function withdraw(address to, uint amount) public onlyClaim returns(bool) {
-    etherBalance = safeSub(etherBalance, amount);
-    to.transfer(amount);
-
-    ev_Withdraw(to, amount);
-
-    return true;
+  function Vault(address _cgsAddress) public {
+    cgsAddress = _cgsAddress;
   }
 
   /// @notice Deposits ether
@@ -60,6 +47,19 @@ contract Vault is SafeMath {
     etherBalance = safeAdd(etherBalance, msg.value);
 
     ev_Deposit(msg.value);
+
+    return true;
+  }
+
+  /// @notice Sends ether to the ICO launcher/token holders
+  /// @dev Sends ether to the ICO launcher/token holders
+  /// @param to Account where the funds are going to be sent
+  /// @param amount Amount of Wei to withdraw
+  function withdraw(address to, uint amount) public onlyCGS returns(bool) {
+    etherBalance = safeSub(etherBalance, amount);
+    to.transfer(amount);
+
+    ev_Withdraw(to, amount);
 
     return true;
   }

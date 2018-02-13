@@ -48,6 +48,7 @@ The Vault is created from the CGS smart contract. Its address can be accessed us
 * Update Interface documentation
 * Create CGS factory to simplify the deployment
 * Fix Redeem formula
+* Withdraw ether by ICO launcher
 
 ## Interface
 
@@ -176,7 +177,7 @@ Number of elements in the array votes
 **Params:**
 
 ```javascript
-contract.methods.numVotes().call():
+contract.methods.numVotes().call();
 // 1
 ```
 
@@ -187,13 +188,13 @@ Returns the address of the CGS token smart contract
 **Params:**
 
 ```javascript
-contract.methods.cgsToken().call():
+contract.methods.cgsToken().call();
 // 0x123...
 ```
 
 ### CGS events
 
-#### ev_NewStage **Constant**
+#### ev_NewStage
 
 Launched every time the stage of a project changes.
 
@@ -201,7 +202,7 @@ Launched every time the stage of a project changes.
 * (indexed) voteId (uint): ID of the vote
 * stage (uint): New stage
 
-#### ev_NewVote **Constant**
+#### ev_NewVote
 
 Launched when a new Vote is created.
 
@@ -209,7 +210,7 @@ Launched when a new Vote is created.
 * (indexed) voteId (uint): ID of the vote
 * callback (address): Callback address
 
-#### ev_Vote **Constant**
+#### ev_Vote
 
 Launched every time a user votes.
 
@@ -218,7 +219,7 @@ Launched every time a user votes.
 * who (address): User address
 * amount (uint): Number of tokens used to vote
 
-#### ev_Reveal **Constant**
+#### ev_Reveal
 
 Launched every time a user reveals his vote.
 
@@ -236,6 +237,7 @@ Launched every time a user reveals his vote.
 Deposits tokens. Should be executed after Token.Approve(...)
 
 **Params:**
+* numTokens (uint): Number of tokens to deposit
 
 ```javascript
 TODO
@@ -243,10 +245,20 @@ TODO
 
 #### withdrawTokens
 
-Withdraws tokens
+Withdraws tokens during the Claim period
 
 **Params:**
-* amount (uint): Number of tokens
+* numTokens (uint): Number of tokens to withdraw
+
+```javascript
+TODO
+```
+
+#### cashOut
+
+Withdraws all tokens after a claim finished
+
+**Params:**
 
 ```javascript
 TODO
@@ -254,23 +266,43 @@ TODO
 
 #### redeem
 
-Exchange tokens for ether if a claim success
+Exchange tokens for ether if a claim success. Executed after approve(...)
 
 **Params:**
+* numTokens (uint): Number of tokens to deposit
 
 ```javascript
 TODO
 ```
 
-#### isWithdrawOpen **Constant**
+#### getStage **Constant**
 
-Returns Whether withdraws are allowed or not
+Returns the actual stage of the claim. Possible return values are:
+0: ClaimPeriod,
+1: ClaimOpen,
+2: Redeem,
+3: ClaimEnded
 
 **Params:**
 
 ```javascript
-contract.methods.isWithdrawOpen().call():
-// true
+contract.methods.getStage().call();
+// 0
+```
+
+#### calculateWeiToWithdrawAt **Constant**
+
+Returns the actual stage of the claim. Possible return values are:
+0: ClaimPeriod,
+1: ClaimOpen,
+2: Redeem,
+3: ClaimEnded
+
+**Params:**
+
+```javascript
+contract.methods.calculateWeiToWithdrawAt().call();
+// 254235548895485215864
 ```
 
 #### userDeposits **Constant**
@@ -278,22 +310,22 @@ contract.methods.isWithdrawOpen().call():
 Returns the number of ICO tokens deposited per user
 
 **Params:**
-(address): user address
+(address): User address
 
 ```javascript
 let userAddress = "0x12345...";
-contract.methods.userDeposits(userAddress).call():
+contract.methods.userDeposits(userAddress).call();
 // 5000000000000000000000
 ```
 
 #### totalDeposit **Constant**
 
-Returns the number of ICO tokens collected to open a claim
+Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
 
 **Params:**
 
 ```javascript
-contract.methods.totalDeposit().call():
+contract.methods.totalDeposit().call();
 // 50000000000000000000
 ```
 
@@ -304,7 +336,7 @@ Returns the number of ICO tokens needed to open a claim
 **Params:**
 
 ```javascript
-contract.methods.claimPrice().call():
+contract.methods.claimPrice().call();
 // 50000000000000000000
 ```
 
@@ -315,24 +347,78 @@ Returns the timestamp when the last claim was open
 **Params:**
 
 ```javascript
-contract.methods.lastClaim().call():
+contract.methods.lastClaim().call();
 // 465484615154
 ```
 
-#### stage **Constant**
+#### currentClaim **Constant**
 
-Returns the state of the claim:
-
- - ClaimPeriod: Users can deposit and withdraw tokens. If more than claimPrice tokens are deposited, a claim is open.
- - ClaimOpen: Deposits and withdrawals get blocked while the CGS holders vote the dispute. When the result of the vote is received, the state moves to the appropriate next stage.
- - ClaimSucceed: Users can exchange their tokens (using transferFrom) for ether for a limited period of time. Users with tokens deposited must withdraw them first. The state moves to ClaimPeriod if ClaimPeriod + TIME_BETWEEN_CLAIMS <= now.
- - ClaimFailed: Users can withdraw their tokens with a penalization. The state moves to ClaimPeriod if ClaimPeriod + TIME_BETWEEN_CLAIMS <= now.
+ID of the current claim
 
 **Params:**
 
 ```javascript
-contract.methods.stage().call():
-// 3
+contract.methods.currentClaim().call();
+// 1
+```
+
+#### claimResults **Constant**
+
+Returns the result of previous claims
+
+**Params:**
+(uint): ID of the claim
+
+```javascript
+let claimId = 1;
+contract.methods.claimResults(claimId).call();
+// 1
+```
+
+#### voteIds **Constant**
+
+Returns ID of the vote of previous and current claims
+
+**Params:**
+(uint): ID of the claim
+
+```javascript
+let claimId = 1;
+contract.methods.voteIds(claimId).call();
+// 1
+```
+
+#### weiPerSecond **Constant**
+
+Returns the Wei that the ICO launcher can withdraw per second
+
+**Params:**
+
+```javascript
+contract.methods.weiPerSecond().call();
+// 2000
+```
+
+#### startDate **Constant**
+
+Returns the timestamp when the CGS starts (When the weiPerSecond starts running)
+
+**Params:**
+
+```javascript
+contract.methods.startDate().call();
+// 465481563257
+```
+
+#### weiWithdrawToDate **Constant**
+
+Returns the Wei that the ICO launcher has withdraw to date
+
+**Params:**
+
+```javascript
+contract.methods.weiWithdrawToDate().call();
+// 120000000000000000000
 ```
 
 #### icoLauncherWallet **Constant**
@@ -342,18 +428,18 @@ Returns the address of the ICO launcher
 **Params:**
 
 ```javascript
-contract.methods.icoLauncherWallet().call():
+contract.methods.icoLauncherWallet().call();
 // 0x123...
 ```
 
-#### cgsAddress **Constant**
+#### cgsVoteAddress **Constant**
 
-Returns the address of the CGS smart contract
+Returns the address of the CGSBinaryVote smart contract
 
 **Params:**
 
 ```javascript
-contract.methods.cgsAddress().call():
+contract.methods.cgsVoteAddress().call();
 // 0x123...
 ```
 
@@ -364,13 +450,46 @@ Returns the address of the token smart contract
 **Params:**
 
 ```javascript
-contract.methods.icoLauncherWallet().call():
+contract.methods.tokenAddress().call();
 // 0x123...
 ```
 
-### Claim events
+#### vaultAddress **Constant**
 
-TODO
+Returns the address of the Vault contract
+
+**Params:**
+
+```javascript
+contract.methods.vaultAddress().call();
+// 0x123...
+```
+
+### CGS events
+
+#### ev_DepositTokens
+
+Launched every time a user deposits tokens.
+
+**Params:**
+* who (address): User address
+* amount (uint): Number of tokens deposited
+
+#### ev_WithdrawTokens
+
+Launched every time a user withdraws tokens.
+
+**Params:**
+* who (address): User address
+* amount (uint): Number of tokens withdraw
+
+#### ev_OpenClaim
+
+Launched when a claim is open
+
+**Params:**
+* voteId (address): ID of the Vote in CGSBinaryVote
+
 
 ### Vault methods
 
@@ -391,7 +510,7 @@ Returns the total amount of ether collected by the smart contract (in wei)
 **Params:**
 
 ```javascript
-contract.methods.totalCollected().call():
+contract.methods.totalCollected().call();
 // 11000000000000000000000
 ```
 
@@ -402,7 +521,7 @@ Returns the ether left on the smart contract (un wei)
 **Params:**
 
 ```javascript
-contract.methods.etherBalance().call():
+contract.methods.etherBalance().call();
 // 7000000000000000000000
 ```
 
@@ -413,10 +532,23 @@ Returns address of the CGS smart contract
 **Params:**
 
 ```javascript
-contract.methods.cgsAddress().call():
-// 7000000000000000000000
+contract.methods.cgsAddress().call();
+// 0x123...
 ```
 
-## CGS events
+## Vault events
 
-TODO
+#### ev_Deposit
+
+Launched every time a a deposit in ether is received
+
+**Params:**
+* amount (uint): Amount in Wei
+
+#### ev_Withdraw
+
+Launched every time Wei is withdraw from the smart contract
+
+**Params:**
+* to (address): The receiver of the Wei
+* amount (uint): Amount in Wei
