@@ -22,9 +22,9 @@ import './Vault.sol';
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/// @title Wevern contract
+/// @title CGS contract
 /// @author Icofunding
-contract Wevern is SafeMath {
+contract CGS is SafeMath {
   uint constant TIME_BETWEEN_CLAIMS = 100 days;
   uint constant TIME_FOR_REDEEM = 10 days;
 
@@ -63,7 +63,7 @@ contract Wevern is SafeMath {
   mapping (address => uint) public claimDeposited;
 
   uint public weiPerSecond; // Wei that the ICO launcher can withdraw per second
-  uint public startDate; // Timestamp when the Wevern starts
+  uint public startDate; // Timestamp when the CGS starts
   uint public weiWithdrawToDate; // Wei that the ICO launcher has withdraw to date
 
   address public icoLauncherWallet; // ICO launcher token wallet
@@ -73,6 +73,7 @@ contract Wevern is SafeMath {
 
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
+  event ev_OpenClaim(uint voteId);
 
   modifier atStage(Stages _stage) {
     require(stage == _stage);
@@ -109,8 +110,8 @@ contract Wevern is SafeMath {
     _;
   }
 
-  /// @notice Creates a Wevern smart contract
-  /// @dev Creates a Wevern smart contract.
+  /// @notice Creates a CGS smart contract
+  /// @dev Creates a CGS smart contract.
   /// roadmapWei and roadmapDates must have the same length.
   /// roadmapDates must be an ordered list.
   /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
@@ -119,7 +120,7 @@ contract Wevern is SafeMath {
   /// @param _tokenAddress Address of the ICO token smart contract
   /// @param _cgsVoteAddress Address of the CGS token smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
-  function Wevern(
+  function CGS(
     uint _weiPerSecond,
     uint _claimPrice,
     address _icoLauncher,
@@ -162,6 +163,8 @@ contract Wevern is SafeMath {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
       setStage(Stages.ClaimOpen);
+
+      ev_OpenClaim(voteIds[currentClaim]);
     }
 
     ev_DepositTokens(msg.sender, numTokens);
@@ -285,6 +288,9 @@ contract Wevern is SafeMath {
     return s;
   }
 
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
     return (date - startDate) * weiPerSecond - weiWithdrawToDate;
   }

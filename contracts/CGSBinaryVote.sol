@@ -231,17 +231,6 @@ contract CGSBinaryVote is SafeMath {
     return stage;
   }
 
-  /// @notice Returns the vote of the user
-  /// @dev Returns the vote of the user
-  /// @param voteId ID of the vote
-  /// @param who Address of the user
-  /// @return the vote of the user
-  function getRevealedVotes(uint voteId, address who) public view returns(bool) {
-    require(hasUserRevealed(voteId, who));
-
-    return votes[voteId].revealedVotes[who];
-  }
-
   /// @notice Returns if the user has revealed his vote
   /// @dev Returns if the user has revealed his vote
   /// @param voteId ID of the vote
@@ -250,6 +239,17 @@ contract CGSBinaryVote is SafeMath {
   function hasUserRevealed(uint voteId, address who) public view returns(bool) {
 
     return votes[voteId].hasRevealed[who];
+  }
+
+  /// @notice Returns the revealed vote of the user
+  /// @dev Returns the revealed vote of the user
+  /// @param voteId ID of the vote
+  /// @param who Address of the user
+  /// @return the vote of the user
+  function getRevealedVote(uint voteId, address who) public view returns(bool) {
+    require(hasUserRevealed(voteId, who));
+
+    return votes[voteId].revealedVotes[who];
   }
 
   /// @notice Returns amount of tokens deposited by a user in a vote
