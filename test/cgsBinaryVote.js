@@ -151,7 +151,7 @@ contract('CGSBinaryVote', function(accounts) {
     assert.equal(0, voteData[3].toNumber(), "incorrect false numVotes");
 
     assert.isTrue(await CGSBinaryVoteContract.hasUserRevealed.call(voteId, tokenHolder1), "incorrect value");
-    assert.equal(voteValue, await CGSBinaryVoteContract.getRevealedVotes.call(voteId, tokenHolder1), "incorrect value");
+    assert.equal(voteValue, await CGSBinaryVoteContract.getRevealedVote.call(voteId, tokenHolder1), "incorrect value");
   });
 
   it("Withdraw", async function() {
