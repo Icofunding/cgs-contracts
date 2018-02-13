@@ -2,10 +2,11 @@
 
 Smart contracts for the CGS platform.
 
-For the first version, there will be three smart contracts for each ICO:
+For the first version, there will be four types of smart contracts:
 - **CGSBinaryVote**: Manages the vote among CGS holders.
-- **CGS**: Collects ICO tokens to create claims and manage the funds at Vault.
-- **Vault**: Stores the Ether collected. It is created from CGS.
+- **CGSFactory**: Creates new CGS smart contracts.
+- **CGS**: Collects ICO tokens to create claims and manage the funds at Vault. One of these contracts is deployed per ICO.
+- **Vault**: Stores the Ether collected. It is created from CGS.  One of these contracts is deployed per ICO.
 
 ## Requirements
 
@@ -24,6 +25,20 @@ Truffle test
 ```
 Truffle migrate
 ```
+
+With that command, the following contracts are going to be deployed:
+
+As persistent contracts:
+* Test CGS token
+* CGSBinaryVote
+* CGSFactory
+
+As a sample ICO with CGS:
+* Test ICO token
+* CGS
+* Vault
+
+To deploy more CGS smart contracts, you can call the function `create()` of CGSFactory.
 
 ## Integration
 To obtain the ABI, you will need to compile the smart contract:
@@ -49,6 +64,8 @@ The Vault is created from the CGS smart contract. Its address can be accessed us
 * Create CGS factory to simplify the deployment
 * Fix Redeem formula
 * Withdraw ether by ICO launcher
+* Lock tokens used in Redeem
+* Reduce the total supply of tokens in Redeem by the number of token in "Redeem vesting"
 
 ## Interface
 

@@ -1,26 +1,39 @@
-var CGS = artifacts.require("./CGS.sol");
+var CGSTestToken = artifacts.require("./test/TestToken.sol");
+var ICOTestToken = artifacts.require("./test/TestToken.sol");
 var CGSBinaryVote = artifacts.require("./CGSBinaryVote.sol");
-var TestToken = artifacts.require("./test/TestToken.sol");
+var CGSFactory = artifacts.require("./CGSFactory.sol");
+var CGS = artifacts.require("./CGS.sol");
 
-module.exports = async function(deployer) {
+module.exports = async function(deployer, network, accounts) {
   const NOW = Math.floor(Date.now() / 1000);
 
-  // Fake Token
+  // Fake CGS Token
   let icoInitialSupply = 1000;
-  let tokenHolder = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"; // Write your ethereum address here
+  let tokenHolder = accounts[0]; // Write your ethereum address here
 
-  // CGS
+  // Fake ICO Token
+  let cgsInitialSupply = 1000;
+  let cgsHolder = accounts[0]; // Write your ethereum address here
+
+  // CGSFactory
   let weiPerSecond = 5;
   let claimPrice = 500;
-  let icoLauncher = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"; // Write your ethereum address here
+  let icoLauncher = accounts[0]; // Write your ethereum address here
 
-  await deployer.deploy(TestToken, tokenHolder, icoInitialSupply);
-  await deployer.deploy(CGSBinaryVote, TestToken.address);
-  await deployer.deploy(CGS, weiPerSecond, claimPrice, icoLauncher, TestToken.address, CGSBinaryVote.address, NOW);
+  await deployer.deploy(CGSTestToken, tokenHolder, icoInitialSupply);
+  await deployer.deploy(CGSBinaryVote, CGSTestToken.address);
+  await deployer.deploy(CGSFactory, CGSBinaryVote.address);
+
+  await deployer.deploy(ICOTestToken, cgsHolder, cgsInitialSupply);
+
+  let CGSFactoryContract = await CGSFactory.deployed();
+  let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
 
   console.log("==================================");
   console.log("Contracts deployed:");
-  console.log("Test token:" + TestToken.address);
+  console.log("Test CGS token:" + CGSTestToken.address);
   console.log("CGSBinaryVote:" + CGSBinaryVote.address);
-  console.log("CGS:" + CGS.address);
+  console.log("CGSFactory:" + CGSFactory.address);
+  console.log("Test ICO token:" + ICOTestToken.address);
+  console.log("CGS:" + event.args.cgs);
 };

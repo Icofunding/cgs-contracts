@@ -112,13 +112,11 @@ contract CGS is SafeMath {
 
   /// @notice Creates a CGS smart contract
   /// @dev Creates a CGS smart contract.
-  /// roadmapWei and roadmapDates must have the same length.
-  /// roadmapDates must be an ordered list.
   /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  /// @param _cgsVoteAddress Address of the CGS token smart contract
+  /// @param _cgsVoteAddress Address of the CGS Vote smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function CGS(
     uint _weiPerSecond,
