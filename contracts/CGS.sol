@@ -175,7 +175,7 @@ contract CGS is SafeMath {
   /// @notice Withdraws tokens during the Claim period
   /// @dev Withdraws tokens during the Claim period
   /// @param numTokens Number of tokens
-  function withdrawTokens(uint numTokens) public atStage(Stages.ClaimPeriod) returns(bool) {
+  function withdrawTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // Enough tokens deposited
     require(userDeposits[msg.sender] >= numTokens);
     // The tokens are doposited for the current claim.
@@ -265,13 +265,23 @@ contract CGS is SafeMath {
       startRedeem = now;
     }
   }
-/*
+
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
-  function withdrawWei() public onlyIcoLauncher {
-    calculateWeiToWithdrawAt(now);
+  function withdrawWei() public onlyIcoLauncher timedTransitions {
+    uint weiToWithdraw = calculateWeiToWithdrawAt(now);
+
+    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
+    if(stage == Stages.ClaimOpen || stage == Stages.Redeem)
+      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+
+    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
+      weiToWithdraw = Vault(vaultAddress).etherBalance();
+
+    weiWithdrawToDate += weiToWithdraw;
+
+    Vault(vaultAddress).withdraw(icoLauncherWallet, weiToWithdraw);
   }
-*/
 
   /// @notice Returns the actual stage of the claim
   /// @dev Returns the actual stage of the claim
@@ -292,6 +302,7 @@ contract CGS is SafeMath {
   /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
   /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
+
     return (date - startDate) * weiPerSecond - weiWithdrawToDate;
   }
 
