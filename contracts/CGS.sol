@@ -51,6 +51,7 @@ contract CGS is SafeMath {
   uint public totalDeposit; // Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
   uint public claimPrice; // Number of ICO tokens (plus decimals)
   uint public lastClaim; // Timestamp when the last claim was open
+  uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
   uint public startRedeem; // Timestamp when the redeem period starts
 
   Stages public stage; // Current stage. Returns uint.
@@ -160,6 +161,7 @@ contract CGS is SafeMath {
     if(totalDeposit >= claimPrice) {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
+      weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
       setStage(Stages.ClaimOpen);
 
       ev_OpenClaim(voteIds[currentClaim]);
@@ -233,7 +235,7 @@ contract CGS is SafeMath {
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
     // Calculate the amount of Wei to receive in exchange of the tokens
-    uint weiToSend = (numTokens * (Vault(vaultAddress).etherBalance() - calculateWeiToWithdrawAt(lastClaim))) / ERC20(tokenAddress).totalSupply();
+    uint weiToSend = (numTokens * (weiBalanceAtlastClaim - calculateWeiToWithdrawAt(lastClaim))) / ERC20(tokenAddress).totalSupply();
 
     // Send Tokens to ICO launcher
     assert(ERC20(tokenAddress).transferFrom(msg.sender, icoLauncherWallet, numTokens));
