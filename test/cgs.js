@@ -234,7 +234,7 @@ contract('CGS', function(accounts) {
     //assert.equal(weiToDeposit - weiToWithdraw, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
     // The tokens have move from ICO holder to ICO launcher
     assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
-    assert.equal(numTokensToRedeem, (await TestTokenContract.balanceOf.call(icoLauncher)).toNumber(), "incorrect value");
+    assert.equal(numTokensToRedeem, (await CGSContract.tokensInVesting.call()).toNumber(), "incorrect value");
   });
 
   it("Redeem 0 tokens");

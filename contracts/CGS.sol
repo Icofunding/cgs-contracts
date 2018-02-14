@@ -51,7 +51,10 @@ contract CGS is SafeMath {
   uint public totalDeposit; // Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
   uint public claimPrice; // Number of ICO tokens (plus decimals)
   uint public lastClaim; // Timestamp when the last claim was open
+  uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
   uint public startRedeem; // Timestamp when the redeem period starts
+
+  uint public tokensInVesting; // Number of tokens in Redeem Vesting
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -112,13 +115,11 @@ contract CGS is SafeMath {
 
   /// @notice Creates a CGS smart contract
   /// @dev Creates a CGS smart contract.
-  /// roadmapWei and roadmapDates must have the same length.
-  /// roadmapDates must be an ordered list.
   /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  /// @param _cgsVoteAddress Address of the CGS token smart contract
+  /// @param _cgsVoteAddress Address of the CGS Vote smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function CGS(
     uint _weiPerSecond,
@@ -162,6 +163,7 @@ contract CGS is SafeMath {
     if(totalDeposit >= claimPrice) {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
+      weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
       setStage(Stages.ClaimOpen);
 
       ev_OpenClaim(voteIds[currentClaim]);
@@ -175,7 +177,7 @@ contract CGS is SafeMath {
   /// @notice Withdraws tokens during the Claim period
   /// @dev Withdraws tokens during the Claim period
   /// @param numTokens Number of tokens
-  function withdrawTokens(uint numTokens) public atStage(Stages.ClaimPeriod) returns(bool) {
+  function withdrawTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // Enough tokens deposited
     require(userDeposits[msg.sender] >= numTokens);
     // The tokens are doposited for the current claim.
@@ -235,10 +237,12 @@ contract CGS is SafeMath {
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
     // Calculate the amount of Wei to receive in exchange of the tokens
-    uint weiToSend = (numTokens * (Vault(vaultAddress).etherBalance() - calculateWeiToWithdrawAt(lastClaim))) / ERC20(tokenAddress).totalSupply();
+    uint weiToSend = (numTokens * (weiBalanceAtlastClaim - calculateWeiToWithdrawAt(lastClaim))) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
 
-    // Send Tokens to ICO launcher
-    assert(ERC20(tokenAddress).transferFrom(msg.sender, icoLauncherWallet, numTokens));
+    // Send Tokens to the Redeem Vesting
+    // Redeem vesting is needed to avoid the icoLauncher using Redeem to drain all the ether.
+    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
+    tokensInVesting += numTokens;
     // Send ether to ICO holder
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
@@ -265,13 +269,32 @@ contract CGS is SafeMath {
       startRedeem = now;
     }
   }
-/*
+
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
-  function withdrawWei() public onlyIcoLauncher {
-    calculateWeiToWithdrawAt(now);
+  function withdrawWei() public onlyIcoLauncher timedTransitions {
+    uint weiToWithdraw = calculateWeiToWithdrawAt(now);
+
+    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
+    if(stage == Stages.ClaimOpen || stage == Stages.Redeem)
+      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+
+    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
+      weiToWithdraw = Vault(vaultAddress).etherBalance();
+
+    weiWithdrawToDate += weiToWithdraw;
+
+    Vault(vaultAddress).withdraw(icoLauncherWallet, weiToWithdraw);
   }
-*/
+
+  /// @notice Withdraws tokens in Redeem vesting by the ICO launcher when the CGS ends
+  /// @dev Withdraws tokens in Redeem vesting by the ICO launcher when the CGS ends
+  function withdrawTokens() public onlyIcoLauncher {
+    // This is needed to avoid the icoLauncher using Redeem to drain all the ether.
+    require(Vault(vaultAddress).etherBalance() == 0);
+
+    assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensInVesting));
+  }
 
   /// @notice Returns the actual stage of the claim
   /// @dev Returns the actual stage of the claim
@@ -292,6 +315,7 @@ contract CGS is SafeMath {
   /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
   /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
+
     return (date - startDate) * weiPerSecond - weiWithdrawToDate;
   }
 
