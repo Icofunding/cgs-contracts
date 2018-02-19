@@ -60,6 +60,7 @@ The Vault is created from the CGS smart contract. Its address can be accessed us
 
 ## TODO
 
+* Add Vault address and send 10 ether in deploy_test
 * Improve deployment scripts
 * More tests
 

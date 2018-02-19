@@ -20,14 +20,17 @@ module.exports = async function(deployer, network, accounts) {
   let claimPrice = 500;
   let icoLauncher = accounts[0]; // Write your ethereum address here
 
-  await deployer.deploy(CGSTestToken, tokenHolder, icoInitialSupply);
+  await deployer.deploy(ICOTestToken, tokenHolder, icoInitialSupply);
   await deployer.deploy(CGSBinaryVote, CGSTestToken.address);
   await deployer.deploy(CGSFactory, CGSBinaryVote.address);
 
-  await deployer.deploy(ICOTestToken, cgsHolder, cgsInitialSupply);
+  await deployer.deploy(CGSTestToken, cgsHolder, cgsInitialSupply);
 
   let CGSFactoryContract = await CGSFactory.deployed();
   let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
+  // Meter 10 ether en Vault
+  // let VaultAddress = ;
+  //await web3.eth.sendTransaction({from: accounts[0], to: VaultAddress, value: web3.toWei("10", "Ether")});
 
   console.log("==================================");
   console.log("Contracts deployed:");
@@ -36,4 +39,5 @@ module.exports = async function(deployer, network, accounts) {
   console.log("CGSFactory:" + CGSFactory.address);
   console.log("Test ICO token:" + ICOTestToken.address);
   console.log("CGS:" + event.args.cgs);
+  //console.log("Vault:" + );
 };
