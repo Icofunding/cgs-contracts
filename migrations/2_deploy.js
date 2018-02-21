@@ -3,6 +3,7 @@ var ICOTestToken = artifacts.require("./test/TestToken.sol");
 var CGSBinaryVote = artifacts.require("./CGSBinaryVote.sol");
 var CGSFactory = artifacts.require("./CGSFactory.sol");
 var CGS = artifacts.require("./CGS.sol");
+var Vault = artifacts.require("./Vault.sol");
 
 module.exports = async function(deployer, network, accounts) {
   const NOW = Math.floor(Date.now() / 1000);
@@ -28,9 +29,11 @@ module.exports = async function(deployer, network, accounts) {
 
   let CGSFactoryContract = await CGSFactory.deployed();
   let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
-  // Meter 10 ether en Vault
-  // let VaultAddress = ;
-  //await web3.eth.sendTransaction({from: accounts[0], to: VaultAddress, value: web3.toWei("10", "Ether")});
+
+  // Sends 10 Ether to Vault
+  let CGSContract = CGS.at(event.args.cgs);
+  let vaultAddress = await CGSContract.vaultAddress.call();
+  await web3.eth.sendTransaction({from: accounts[0], to: vaultAddress, value: web3.toWei("10", "Ether")});
 
   console.log("==================================");
   console.log("Contracts deployed:");
@@ -39,5 +42,5 @@ module.exports = async function(deployer, network, accounts) {
   console.log("CGSFactory:" + CGSFactory.address);
   console.log("Test ICO token:" + ICOTestToken.address);
   console.log("CGS:" + event.args.cgs);
-  //console.log("Vault:" + );
+  console.log("Vault:" + vaultAddress);
 };

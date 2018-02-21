@@ -212,7 +212,7 @@ contract('CGS', function(accounts) {
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Simulate ICO deposit
-    let VaultAddress = await CGSContract.vaultAddress.call()
+    let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
