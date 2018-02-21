@@ -7,11 +7,17 @@ import '../util/SafeMath.sol';
  * Standard ERC20 token with fake data. ONLY FOR TESTING
  */
 contract TestToken is ERC20, SafeMath {
+  string public name;
+  string public symbol;
+  uint public decimals;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  function TestToken(address recipient, uint amount) public {
+  function TestToken(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
+    name = _name;
+    symbol = _symbol;
+    decimals = _decimals;
     mint(recipient, amount);
   }
 

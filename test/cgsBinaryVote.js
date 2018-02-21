@@ -24,11 +24,19 @@ contract('CGSBinaryVote', function(accounts) {
   let HashContract;
   let VoteReceiverContract;
 
+  let tokenName;
+  let tokenSymbol;
+  let tokenDecimals;
+
   before(async () => {
     owner = accounts[0];
     tokenHolder1 = accounts[1];
     tokenHolder2 = accounts[2];
     tokenHolder3 = accounts[3];
+
+    tokenName = "Coin Governance System";
+    tokenSymbol = "CGS";
+    tokenDecimals = 18;
 
     HashContract = await Hash.new();
     VoteReceiverContract = await VoteReceiver.new();
@@ -37,7 +45,7 @@ contract('CGSBinaryVote', function(accounts) {
   it("Deployment with initial values", async function() {
     let cgsInitialSupply = 1000;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     // Default value for all variables
@@ -48,7 +56,7 @@ contract('CGSBinaryVote', function(accounts) {
   it("Start a vote", async function() {
     let cgsInitialSupply = 1000;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     // Execute and check the event
@@ -77,7 +85,7 @@ contract('CGSBinaryVote', function(accounts) {
     let voteValue = true;
     let salt = await HashContract.sha3String("The most secure password ever");
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     await CGSBinaryVoteContract.startVote(owner);
@@ -102,7 +110,7 @@ contract('CGSBinaryVote', function(accounts) {
     let salt = await HashContract.sha3String("The most secure password ever");
     let hash = await HashContract.sha3Vote(voteValue, salt);
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     await CGSBinaryVoteContract.startVote(owner);
@@ -134,7 +142,7 @@ contract('CGSBinaryVote', function(accounts) {
     let salt = await HashContract.sha3String("The most secure password ever");
     let hash = await HashContract.sha3Vote(voteValue, salt);
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     await CGSBinaryVoteContract.startVote(owner);
@@ -165,7 +173,7 @@ contract('CGSBinaryVote', function(accounts) {
     let hash = await HashContract.sha3Vote(voteValue, salt);
     let hash2 = await HashContract.sha3Vote(voteValue2, salt);
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
 
     await TestTokenContract.mint(tokenHolder2, numTokensToVote2);

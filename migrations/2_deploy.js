@@ -3,31 +3,43 @@ var ICOTestToken = artifacts.require("./test/TestToken.sol");
 var CGSBinaryVote = artifacts.require("./CGSBinaryVote.sol");
 var CGSFactory = artifacts.require("./CGSFactory.sol");
 var CGS = artifacts.require("./CGS.sol");
+var Vault = artifacts.require("./Vault.sol");
 
 module.exports = async function(deployer, network, accounts) {
   const NOW = Math.floor(Date.now() / 1000);
 
   // Fake CGS Token
-  let icoInitialSupply = 1000;
+  let icoInitialSupply = "10000000000000000000000";
   let tokenHolder = accounts[0]; // Write your ethereum address here
+  let cgsTokenName = "Coin Governance System";
+  let cgsTokenSymbol = "CGS";
+  let cgsTokenDecimals = 18;
 
   // Fake ICO Token
-  let cgsInitialSupply = 1000;
+  let cgsInitialSupply = "10000000000000000000000";
   let cgsHolder = accounts[0]; // Write your ethereum address here
+  let icoTokenName = "ICO Token";
+  let icoTokenSymbol = "ICOT";
+  let icoTokenDecimals = 18;
 
   // CGSFactory
   let weiPerSecond = 5;
   let claimPrice = 500;
   let icoLauncher = accounts[0]; // Write your ethereum address here
 
-  await deployer.deploy(CGSTestToken, tokenHolder, icoInitialSupply);
+  await deployer.deploy(ICOTestToken, tokenHolder, icoInitialSupply, icoTokenName, icoTokenSymbol, icoTokenDecimals);
   await deployer.deploy(CGSBinaryVote, CGSTestToken.address);
   await deployer.deploy(CGSFactory, CGSBinaryVote.address);
 
-  await deployer.deploy(ICOTestToken, cgsHolder, cgsInitialSupply);
+  await deployer.deploy(CGSTestToken, cgsHolder, cgsInitialSupply, cgsTokenName, cgsTokenSymbol, cgsTokenDecimals);
 
   let CGSFactoryContract = await CGSFactory.deployed();
   let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
+
+  // Sends 10 Ether to Vault
+  let CGSContract = CGS.at(event.args.cgs);
+  let vaultAddress = await CGSContract.vaultAddress.call();
+  await web3.eth.sendTransaction({from: accounts[0], to: vaultAddress, value: web3.toWei("10", "Ether")});
 
   console.log("==================================");
   console.log("Contracts deployed:");
@@ -36,4 +48,5 @@ module.exports = async function(deployer, network, accounts) {
   console.log("CGSFactory:" + CGSFactory.address);
   console.log("Test ICO token:" + ICOTestToken.address);
   console.log("CGS:" + event.args.cgs);
+  console.log("Vault:" + vaultAddress);
 };

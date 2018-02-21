@@ -60,12 +60,8 @@ The Vault is created from the CGS smart contract. Its address can be accessed us
 
 ## TODO
 
-* Update Interface documentation
-* Create CGS factory to simplify the deployment
-* Fix Redeem formula
-* Withdraw ether by ICO launcher
-* Lock tokens used in Redeem
-* Reduce the total supply of tokens in Redeem by the number of token in "Redeem vesting"
+* Improve deployment scripts
+* More tests
 
 ## Interface
 

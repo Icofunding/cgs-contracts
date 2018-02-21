@@ -16,6 +16,12 @@ contract('CGS', function(accounts) {
   let tokenHolder2;
   let icoLauncher;
 
+  let tokenName;
+  let tokenSymbol;
+  let tokenDecimals;
+
+  let claimPrice;
+
   let FakeCGSBinaryVoteContract;
 
   before(async () => {
@@ -23,6 +29,10 @@ contract('CGS', function(accounts) {
     tokenHolder1 = accounts[1];
     tokenHolder2 = accounts[2];
     icoLauncher = accounts[3];
+
+    tokenName = "ICO Token";
+    tokenSymbol = "ICOT";
+    tokenDecimals = 18;
 
     claimPrice = 500;
 
@@ -33,7 +43,7 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Default value for all variables
@@ -56,7 +66,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -81,7 +91,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -111,7 +121,7 @@ contract('CGS', function(accounts) {
     let numTokensToWithdraw = 150;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -137,7 +147,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -164,7 +174,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -185,7 +195,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -208,11 +218,11 @@ contract('CGS', function(accounts) {
     let weiPerSecond = 5;
     let weiToDeposit = web3.toWei("2", "Ether");
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Simulate ICO deposit
-    let VaultAddress = await CGSContract.vaultAddress.call()
+    let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
@@ -246,7 +256,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
@@ -272,7 +282,7 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
     // Approve and transferFrom to move tokens to the contract
