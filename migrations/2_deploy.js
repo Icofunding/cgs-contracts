@@ -23,8 +23,8 @@ module.exports = async function(deployer, network, accounts) {
   let icoTokenDecimals = 18;
 
   // CGSFactory
-  let weiPerSecond = 5;
-  let claimPrice = 500;
+  let weiPerSecond = 5000000;
+  let claimPrice = "500000000000000000000";
   let icoLauncher = accounts[0]; // Write your ethereum address here
 
   await deployer.deploy(ICOTestToken, tokenHolder, icoInitialSupply, icoTokenName, icoTokenSymbol, icoTokenDecimals);
