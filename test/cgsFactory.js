@@ -37,7 +37,7 @@ contract('CGS Factory', function(accounts) {
 
     let CGSFactoryContract = await CGSFactory.new(FakeCGSBinaryVoteContract.address);
 
-    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply);
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, "TEST", "TST", 2);
 
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
 
