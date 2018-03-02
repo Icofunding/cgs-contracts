@@ -289,7 +289,7 @@ contract CGS is SafeMath {
 
   /// @notice Withdraws tokens in Redeem vesting by the ICO launcher when the CGS ends
   /// @dev Withdraws tokens in Redeem vesting by the ICO launcher when the CGS ends
-  function withdrawTokens() public onlyIcoLauncher {
+  function withdrawLockedTokens() public onlyIcoLauncher {
     // This is needed to avoid the icoLauncher using Redeem to drain all the ether.
     require(Vault(vaultAddress).etherBalance() == 0);
 
