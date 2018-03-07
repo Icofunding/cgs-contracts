@@ -181,36 +181,17 @@ contract CGSBinaryVote is SafeMath {
     atStage(voteId, Stages.Settlement)
     returns(bool)
   {
-    uint deposited = votes[voteId].userDeposits[msg.sender];
+    // Number of tokens to withdraw after penalization/bonus
+    uint numTokens = tokensToWithdraw(voteId, msg.sender);
+
     // Check if the user has any withdrawal pending
-    require(deposited > 0);
-
-    // Did the vote succeed?
-    bool voteResult = (votes[voteId].votesYes > votes[voteId].votesNo);
-    // If the user revealed his vote and vote the same as the winner option
-    bool userWon = votes[voteId].hasRevealed[msg.sender] && (voteResult == votes[voteId].revealedVotes[msg.sender]);
-
-    uint tokensToWithdraw;
-    if(userWon) {
-      uint bonus;
-      if(voteResult) {
-        bonus = votes[voteId].votesNo*20/100;
-
-        tokensToWithdraw = deposited + bonus*deposited/votes[voteId].votesYes;
-      } else {
-        bonus = votes[voteId].votesYes*20/100;
-
-        tokensToWithdraw = deposited + bonus*deposited/votes[voteId].votesNo;
-      }
-    } else {
-      tokensToWithdraw = deposited - deposited*20/100;
-    }
+    require(numTokens > 0);
 
     // Update balance
     votes[voteId].userDeposits[msg.sender] = 0;
 
     // Send tokens to the user
-    assert(ERC20(cgsToken).transfer(msg.sender, tokensToWithdraw));
+    assert(ERC20(cgsToken).transfer(msg.sender, numTokens));
 
     return true;
   }
@@ -229,6 +210,41 @@ contract CGSBinaryVote is SafeMath {
       stage = Stages.Settlement;
 
     return stage;
+  }
+
+  /// @notice Calculates the number of tokens to withdraw after a voting process
+  /// @dev Calculates the number of tokens to withdraw after a voting process
+  /// @param voteId ID of the vote
+  /// @param who Address of the user
+  /// @return number of tokens
+  function tokensToWithdraw(uint voteId, address who) public view returns(uint) {
+    // Number of tokens deposited by the user
+    uint deposited = votes[voteId].userDeposits[msg.sender];
+    // Did the vote succeed?
+    bool voteResult = (votes[voteId].votesYes > votes[voteId].votesNo);
+    // If the user revealed his vote and vote the same as the winner option
+    bool userWon = votes[voteId].hasRevealed[who] && (voteResult == votes[voteId].revealedVotes[who]);
+
+    uint tokensToWithdraw;
+
+    if(deposited == 0) {
+      tokensToWithdraw = 0;
+    } else if(userWon) {
+      uint bonus;
+      if(voteResult) {
+        bonus = votes[voteId].votesNo*20/100;
+
+        tokensToWithdraw = deposited + bonus*deposited/votes[voteId].votesYes;
+      } else {
+        bonus = votes[voteId].votesYes*20/100;
+
+        tokensToWithdraw = deposited + bonus*deposited/votes[voteId].votesNo;
+      }
+    } else {
+      tokensToWithdraw = deposited - deposited*20/100;
+    }
+
+    return tokensToWithdraw;
   }
 
   /// @notice Returns if the user has revealed his vote

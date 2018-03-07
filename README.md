@@ -120,6 +120,21 @@ contract.methods.getStage(voteId).call();
 // 0
 ```
 
+#### tokensToWithdraw **Constant**
+
+Calculates the number of tokens to withdraw after a voting process
+
+**Params:**
+* voteId (uint): ID of the vote
+* who (address): User address
+
+```javascript
+let voteId = 0;
+let userAddress = "0x12345...";
+contract.methods.tokensToWithdraw(voteId, userAddress).call();
+// 500000000000000000000
+```
+
 #### hasUserRevealed **Constant**
 
 Returns if the user has revealed his vote
