@@ -120,6 +120,21 @@ contract.methods.getStage(voteId).call();
 // 0
 ```
 
+#### tokensToWithdraw **Constant**
+
+Calculates the number of tokens to withdraw after a voting process
+
+**Params:**
+* voteId (uint): ID of the vote
+* who (address): User address
+
+```javascript
+let voteId = 0;
+let userAddress = "0x12345...";
+contract.methods.tokensToWithdraw(voteId, userAddress).call();
+// 500000000000000000000
+```
+
 #### hasUserRevealed **Constant**
 
 Returns if the user has revealed his vote
@@ -301,6 +316,19 @@ Returns the actual stage of the claim. Possible return values are:
 ```javascript
 contract.methods.getStage().call();
 // 0
+```
+
+#### calculateEtherPerTokens **Constant**
+
+Calculates the amount of ether send to the token holder in exchange of n tokens
+
+**Params:**
+* numTokens (uint): Number of tokens to exchange
+
+```javascript
+let numTokens = 5000000000000000000000;
+contract.methods.calculateEtherPerTokens(numTokens).call();
+// 25000000000000000000000
 ```
 
 #### calculateWeiToWithdrawAt **Constant**

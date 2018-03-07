@@ -237,7 +237,7 @@ contract CGS is SafeMath {
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
     // Calculate the amount of Wei to receive in exchange of the tokens
-    uint weiToSend = (numTokens * (weiBalanceAtlastClaim - calculateWeiToWithdrawAt(lastClaim))) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
+    uint weiToSend = calculateEtherPerTokens(numTokens);
 
     // Send Tokens to the Redeem Vesting
     // Redeem vesting is needed to avoid the icoLauncher using Redeem to drain all the ether.
@@ -309,6 +309,14 @@ contract CGS is SafeMath {
       s = Stages.ClaimPeriod;
 
     return s;
+  }
+
+  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens
+  /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
+  /// @param numTokens Number of tokens to exchange
+  function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
+
+    return (numTokens * (weiBalanceAtlastClaim - calculateWeiToWithdrawAt(lastClaim))) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
   }
 
   /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
