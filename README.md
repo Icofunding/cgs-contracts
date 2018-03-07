@@ -303,6 +303,19 @@ contract.methods.getStage().call();
 // 0
 ```
 
+#### calculateEtherPerTokens **Constant**
+
+Calculates the amount of ether send to the token holder in exchange of n tokens
+
+**Params:**
+* numTokens (uint): Number of tokens to exchange
+
+```javascript
+let numTokens = 5000000000000000000000;
+contract.methods.calculateEtherPerTokens(numTokens).call();
+// 25000000000000000000000
+```
+
 #### calculateWeiToWithdrawAt **Constant**
 
 Returns the actual stage of the claim. Possible return values are:
