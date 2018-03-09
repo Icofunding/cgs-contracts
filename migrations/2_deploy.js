@@ -1,5 +1,5 @@
-var CGSTestToken = artifacts.require("./test/TestToken.sol");
-var ICOTestToken = artifacts.require("./test/TestToken.sol");
+var CGSTestToken = artifacts.require("./test/CGSTestToken.sol");
+var ICOTestToken = artifacts.require("./test/ICOTestToken.sol");
 var CGSBinaryVote = artifacts.require("./CGSBinaryVote.sol");
 var CGSFactory = artifacts.require("./CGSFactory.sol");
 var CGS = artifacts.require("./CGS.sol");
