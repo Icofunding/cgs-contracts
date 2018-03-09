@@ -84,6 +84,12 @@ contract CGS is SafeMath {
     _;
   }
 
+  modifier wakeVoter {
+    CGSBinaryVote(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
+
+    _;
+  }
+
   modifier timedTransitions() {
     Stages newStage = getStage();
 
@@ -202,7 +208,7 @@ contract CGS is SafeMath {
 
   /// @notice Withdraws all tokens after a claim finished
   /// @dev Withdraws all tokens after a claim finished
-  function cashOut() public timedTransitions returns(bool) {
+  function cashOut() public wakeVoter timedTransitions returns(bool) {
     uint claim = claimDeposited[msg.sender];
 
     if(claim != 0) {
@@ -232,7 +238,7 @@ contract CGS is SafeMath {
   /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
   /// @dev Exchange tokens for ether if a claim success. Executed after approve(...)
   /// @param numTokens Number of tokens
-  function redeem(uint numTokens) public timedTransitions atStage(Stages.Redeem) returns(bool) {
+  function redeem(uint numTokens) public wakeVoter timedTransitions atStage(Stages.Redeem) returns(bool) {
     // Enough tokens allowed
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
@@ -272,7 +278,7 @@ contract CGS is SafeMath {
 
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
-  function withdrawWei() public onlyIcoLauncher timedTransitions {
+  function withdrawWei() public onlyIcoLauncher wakeVoter timedTransitions {
     uint weiToWithdraw = calculateWeiToWithdrawAt(now);
 
     // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw

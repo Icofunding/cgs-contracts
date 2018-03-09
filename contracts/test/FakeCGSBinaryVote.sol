@@ -19,4 +19,8 @@ contract FakeCGSBinaryVote {
   function finalizeVote(uint voteId, bool result) public {
     BinaryVoteCallback(callback).binaryVoteResult(voteId, result);
   }
+
+  function finalizeVote(uint voteId) public {
+    isVoteOpen = false;
+  }
 }
