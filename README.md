@@ -103,6 +103,17 @@ Withdraws CGS tokens after bonus/penalization
 TODO
 ```
 
+#### finalizeVote
+
+Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
+
+**Params:**
+* voteId (uint): ID of the vote
+
+```javascript
+TODO
+```
+
 #### getStage **Constant**
 
 Returns the actual stage of a vote.
@@ -188,6 +199,7 @@ Returns information about a vote:
 - votesYes (uint): Votes that the project is doing a proper use of the funds. Updated during Reveal stage
 - votesNo (uint): Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
 - callback (address): The address to call when the vote ends
+- finalized (bool): If the result of the project has already been informed to the callback
 
 **Params:**
 * (uint): ID of the vote
@@ -195,7 +207,7 @@ Returns information about a vote:
 ```javascript
 let voteId = 0;
 contract.methods.votes(voteId).call();
-// [456851454648, 2, 2500000000000000000000000, 1750000000000000000000000, 0x12345678912345679abcdef]
+// [456851454648, 2, 2500000000000000000000000, 1750000000000000000000000, 0x12345678912345679abcdef, false]
 ```
 
 #### numVotes **Constant**

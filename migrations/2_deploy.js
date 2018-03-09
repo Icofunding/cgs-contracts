@@ -27,11 +27,11 @@ module.exports = async function(deployer, network, accounts) {
   let claimPrice = "500000000000000000000";
   let icoLauncher = accounts[0]; // Write your ethereum address here
 
-  await deployer.deploy(ICOTestToken, tokenHolder, icoInitialSupply, icoTokenName, icoTokenSymbol, icoTokenDecimals);
+  await deployer.deploy(CGSTestToken, cgsHolder, cgsInitialSupply, cgsTokenName, cgsTokenSymbol, cgsTokenDecimals);
   await deployer.deploy(CGSBinaryVote, CGSTestToken.address);
   await deployer.deploy(CGSFactory, CGSBinaryVote.address);
 
-  await deployer.deploy(CGSTestToken, cgsHolder, cgsInitialSupply, cgsTokenName, cgsTokenSymbol, cgsTokenDecimals);
+  await deployer.deploy(ICOTestToken, tokenHolder, icoInitialSupply, icoTokenName, icoTokenSymbol, icoTokenDecimals);
 
   let CGSFactoryContract = await CGSFactory.deployed();
   let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
