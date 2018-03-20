@@ -2,11 +2,12 @@ pragma solidity ^0.4.18;
 
 import '../interfaces/ERC20.sol';
 import '../util/SafeMath.sol';
+import '../util/Owned.sol';
 
 /**
  * Standard ERC20 token with fake data. ONLY FOR TESTING
  */
-contract ICOTestToken is ERC20, SafeMath {
+contract ICOTestToken is ERC20, SafeMath, Owned {
   string public name;
   string public symbol;
   uint public decimals;
@@ -21,9 +22,9 @@ contract ICOTestToken is ERC20, SafeMath {
     mint(recipient, amount);
   }
 
-  function mint(address recipient, uint amount) public {
-    balances[recipient] = amount;
-    totalSupply = amount;
+  function mint(address recipient, uint amount) public onlyOwner {
+    balances[recipient] += amount;
+    totalSupply += amount;
   }
 
   function transfer(address _to, uint _value) public returns (bool success) {
