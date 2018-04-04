@@ -360,9 +360,12 @@ contract('CGS', function(accounts) {
 
   it("Check stages");
 
+  // Important
+  it("Check wei to withdraw by the ICO launcher");
+
   it("Withdraw ether by ICO launcher");
   it("Withdraw ether by non-ICO launcher should fail");
-  it("Withdraw ether with a claim open should fail");
+  it("Withdraw ether with a claim open should only withdraw part of the ether");
 
   // Also test modifiers to change stage
 });

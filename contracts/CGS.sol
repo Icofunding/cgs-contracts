@@ -285,9 +285,6 @@ contract CGS is SafeMath {
     if(stage == Stages.ClaimOpen || stage == Stages.Redeem)
       weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
 
-    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
-      weiToWithdraw = Vault(vaultAddress).etherBalance();
-
     weiWithdrawToDate += weiToWithdraw;
 
     Vault(vaultAddress).withdraw(icoLauncherWallet, weiToWithdraw);
@@ -300,6 +297,8 @@ contract CGS is SafeMath {
     require(Vault(vaultAddress).etherBalance() == 0);
 
     assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensInVesting));
+
+    tokensInVesting = 0;
   }
 
   /// @notice Returns the actual stage of the claim
@@ -321,16 +320,24 @@ contract CGS is SafeMath {
   /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
   /// @param numTokens Number of tokens to exchange
   function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
+    uint weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
 
-    return (numTokens * (weiBalanceAtlastClaim - calculateWeiToWithdrawAt(lastClaim))) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
+    if(weiToWithdraw > weiBalanceAtlastClaim)
+      weiToWithdraw = weiBalanceAtlastClaim;
+
+    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
   }
 
   /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
   /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
   /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
+    uint weiToWithdraw = (date - startDate) * weiPerSecond - weiWithdrawToDate;
 
-    return (date - startDate) * weiPerSecond - weiWithdrawToDate;
+    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
+      weiToWithdraw = Vault(vaultAddress).etherBalance();
+
+    return weiToWithdraw;
   }
 
   /// @notice Changes the stage to _stage

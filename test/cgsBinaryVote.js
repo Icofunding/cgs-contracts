@@ -13,6 +13,7 @@ contract('CGSBinaryVote', function(accounts) {
   const SECRET_VOTE_STAGE = 0;
   const REVEAL_VOTE_STAGE = 1;
   const SETTLEMENT_STAGE = 2;
+
   const TIME_TO_VOTE = 7*ONE_DAY;
   const TIME_TO_REVEAL = 3*ONE_DAY;
 
@@ -33,6 +34,7 @@ contract('CGSBinaryVote', function(accounts) {
     tokenHolder1 = accounts[1];
     tokenHolder2 = accounts[2];
     tokenHolder3 = accounts[3];
+    tokenHolder4 = accounts[4];
 
     tokenName = "Coin Governance System";
     tokenSymbol = "CGS";
@@ -129,6 +131,8 @@ contract('CGSBinaryVote', function(accounts) {
     assert.equal(0, voteData[2].toNumber(), "incorrect true numVotes");
     assert.equal(0, voteData[3].toNumber(), "incorrect false numVotes");
     assert.equal(owner, voteData[4], "incorrect callback");
+    assert.isFalse(voteData[5], "incorrect value");
+    assert.equal(numTokensToVote, voteData[6].toNumber(), "incorrect number of total votes");
 
     assert.equal(numTokensToVote, (await CGSBinaryVoteContract.getUserDeposit.call(voteId, tokenHolder1)).toNumber(), "incorrect amount");
     assert.isFalse(await CGSBinaryVoteContract.hasUserRevealed.call(voteId, tokenHolder1), "incorrect value");
@@ -197,6 +201,75 @@ contract('CGSBinaryVote', function(accounts) {
 
     assert.equal(cgsInitialSupply + numTokensToVote2*0.2, await TestTokenContract.balanceOf.call(tokenHolder1), "incorrect value");
     assert.equal(numTokensToVote2 - numTokensToVote2*0.2, await TestTokenContract.balanceOf.call(tokenHolder2), "incorrect value");
+  });
+
+  it("Check tokens to withdraw with 4 voters", async function() {
+    let cgsInitialSupply = 1000;
+    let numTokensToVote = 200;
+    let numTokensToVote2 = 100;
+    let numTokensToVote3 = 150;
+    let numTokensToVote4 = 250;
+    let voteId = 0;
+    let voteValue = true;
+    let voteValue2 = false;
+    let salt = await HashContract.sha3String("The most secure password ever");
+    let hash = await HashContract.sha3Vote(voteValue, salt);
+    let hash2 = await HashContract.sha3Vote(voteValue2, salt);
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
+    let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
+
+    await TestTokenContract.mint(tokenHolder2, numTokensToVote2);
+    await TestTokenContract.mint(tokenHolder3, numTokensToVote3);
+    await TestTokenContract.mint(tokenHolder4, numTokensToVote4);
+
+    await CGSBinaryVoteContract.startVote(VoteReceiverContract.address);
+
+    // Vote yes
+    await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote, {from: tokenHolder1});
+    await CGSBinaryVoteContract.vote(voteId, numTokensToVote, hash, {from: tokenHolder1});
+
+    // Vote no
+    await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote2, {from: tokenHolder2});
+    await CGSBinaryVoteContract.vote(voteId, numTokensToVote2, hash2, {from: tokenHolder2});
+
+    // Vote yes but will not reveal
+    await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote3, {from: tokenHolder3});
+    await CGSBinaryVoteContract.vote(voteId, numTokensToVote3, hash, {from: tokenHolder3});
+
+    // Vote yes
+    await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote4, {from: tokenHolder4});
+    await CGSBinaryVoteContract.vote(voteId, numTokensToVote4, hash, {from: tokenHolder4});
+
+    increaseTime(TIME_TO_VOTE);
+    await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder1});
+    await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder2});
+    // token holder 3 does not reveal
+    await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder4});
+
+    increaseTime(TIME_TO_REVEAL);
+
+    //await CGSBinaryVoteContract.withdrawTokens(voteId, {from: tokenHolder1});
+    //await CGSBinaryVoteContract.withdrawTokens(voteId, {from: tokenHolder2});
+
+    let voteData = await CGSBinaryVoteContract.votes.call(0);
+    assert.equal(numTokensToVote + numTokensToVote4, voteData[2].toNumber(), "incorrect true numVotes");
+    assert.equal(numTokensToVote2, voteData[3].toNumber(), "incorrect false numVotes");
+    assert.equal(numTokensToVote + numTokensToVote2 + numTokensToVote3 + numTokensToVote4, voteData[6].toNumber(), "incorrect number of total votes");
+
+    // Apply penalizations (2 & 3) and bonuses (1 & 4)
+    let tokensToVoter1 = numTokensToVote + parseInt(   parseInt(  ( (voteData[6].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote  ) / voteData[2].toNumber()   );
+    let tokensToVoter2 = numTokensToVote2 - numTokensToVote2*0.2;
+    let tokensToVoter3 = numTokensToVote3 - numTokensToVote3*0.2;
+    let tokensToVoter4 = numTokensToVote4 + parseInt(   parseInt(  ( (voteData[6].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote4  ) / voteData[2].toNumber()   );
+
+    assert.equal(tokensToVoter1, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder1)).toNumber(), "incorrect number of tokens to withdraw");
+    assert.equal(tokensToVoter2, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder2)).toNumber(), "incorrect number of tokens to withdraw");
+    assert.equal(tokensToVoter3, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder3)).toNumber(), "incorrect number of tokens to withdraw");
+    assert.equal(tokensToVoter4, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder4)).toNumber(), "incorrect number of tokens to withdraw");
+
+    // The number of tokens remains the same
+    assert.approximately(tokensToVoter1 + tokensToVoter2 + tokensToVoter3 + tokensToVoter4, voteData[6].toNumber(), 2, "incorrect value");
   });
 
 });
