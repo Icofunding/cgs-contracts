@@ -48,6 +48,7 @@ contract CGSBinaryVote is SafeMath {
     uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
     address callback; // The address to call when the vote ends
     bool finalized; // If the result of the project has already been informed to the callback
+    uint totalVotes; // Total number of votes (at the moment of voting, no matter if revealed or not)
     mapping (address => bytes32) secretVotes; // Hashes of votes
     mapping (address => bool) revealedVotes; // Votes in plain text
     mapping (address => bool) hasRevealed; // True if the user has revealed is vote
@@ -96,7 +97,7 @@ contract CGSBinaryVote is SafeMath {
   /// @dev Starts a vote
   /// @return the vote ID
   function startVote(address _callback) public returns(uint) {
-    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback, false);
+    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback, false, 0);
 
     votes.push(newVote);
     numVotes++;
@@ -130,6 +131,8 @@ contract CGSBinaryVote is SafeMath {
 
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
+
+    votes[voteId].totalVotes += numTokens;
 
     ev_Vote(voteId, msg.sender, numTokens);
 
@@ -220,7 +223,7 @@ contract CGSBinaryVote is SafeMath {
   /// @return number of tokens
   function tokensToWithdraw(uint voteId, address who) public view returns(uint) {
     // Number of tokens deposited by the user
-    uint deposited = votes[voteId].userDeposits[msg.sender];
+    uint deposited = votes[voteId].userDeposits[who];
     // Did the vote succeed?
     bool voteResult = (votes[voteId].votesYes > votes[voteId].votesNo);
     // If the user revealed his vote and vote the same as the winner option
@@ -231,18 +234,22 @@ contract CGSBinaryVote is SafeMath {
     if(deposited == 0) {
       numTokens = 0;
     } else if(userWon) {
+      // 20% of the tokens that voted the wrong option or not revealed are distributed among the winners
       uint bonus;
       if(voteResult) {
-        bonus = votes[voteId].votesNo*20/100;
+        // If the result is positive
+        bonus = ((votes[voteId].totalVotes - votes[voteId].votesYes) * 20) / 100;
 
         numTokens = deposited + bonus*deposited/votes[voteId].votesYes;
       } else {
-        bonus = votes[voteId].votesYes*20/100;
+        // If the result is negative
+        bonus = ((votes[voteId].totalVotes - votes[voteId].votesNo) * 20) / 100;
 
         numTokens = deposited + bonus*deposited/votes[voteId].votesNo;
       }
     } else {
-      numTokens = deposited - deposited*20/100;
+      // Losers and people that not revealed their vote lose 20% of their tokens
+      numTokens = deposited - (deposited*20)/100;
     }
 
     return numTokens;

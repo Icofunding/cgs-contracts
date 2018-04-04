@@ -200,6 +200,7 @@ Returns information about a vote:
 - votesNo (uint): Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
 - callback (address): The address to call when the vote ends
 - finalized (bool): If the result of the project has already been informed to the callback
+- totalVotes (uint): Total number of votes (at the moment of voting, no matter if revealed or not)
 
 **Params:**
 * (uint): ID of the vote
@@ -207,7 +208,7 @@ Returns information about a vote:
 ```javascript
 let voteId = 0;
 contract.methods.votes(voteId).call();
-// [456851454648, 2, 2500000000000000000000000, 1750000000000000000000000, 0x12345678912345679abcdef, false]
+// [456851454648, 2, 2500000000000000000000000, 1750000000000000000000000, 0x12345678912345679abcdef, false, 5000000000000000000000000]
 ```
 
 #### numVotes **Constant**

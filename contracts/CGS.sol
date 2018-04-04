@@ -297,6 +297,8 @@ contract CGS is SafeMath {
     require(Vault(vaultAddress).etherBalance() == 0);
 
     assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensInVesting));
+
+    tokensInVesting = 0;
   }
 
   /// @notice Returns the actual stage of the claim
