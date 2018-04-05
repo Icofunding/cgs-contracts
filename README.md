@@ -405,6 +405,28 @@ contract.methods.lastClaim().call();
 // 465484615154
 ```
 
+#### tokensInVesting **Constant**
+
+Number of tokens in Redeem Vesting.
+
+**Params:**
+
+```javascript
+contract.methods.tokensInVesting().call();
+// 554570000000000000000
+```
+
+#### etherRedeem **Constant**
+
+Returns the ether withdraw by ICO token holders during the Redeem process
+
+**Params:**
+
+```javascript
+contract.methods.etherRedeem().call();
+// 5560000000000000000
+```
+
 #### currentClaim **Constant**
 
 ID of the current claim

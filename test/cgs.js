@@ -62,6 +62,7 @@ contract('CGS', function(accounts) {
     assert.equal(0, (await CGSContract.totalDeposit.call()).toNumber(), "incorrect total deposit");
     assert.equal(0, (await CGSContract.lastClaim.call()).toNumber(), "incorrect lastClaim");
     assert.equal(0, (await CGSContract.weiWithdrawToDate.call()).toNumber(), "incorrect weiWithdrawToDate");
+    assert.equal(0, (await CGSContract.etherRedeem.call()).toNumber(), "incorrect etherRedeem");
     assert.equal(timestamp, (await CGSContract.startDate.call()).toNumber(), "incorrect date");
 
   });
@@ -290,6 +291,7 @@ contract('CGS', function(accounts) {
     let weiToWithdraw = 0;
     // TODO: Test the amount of ether sent to the token holder from the Vault. The formula have to change.
     //assert.equal(weiToDeposit - weiToWithdraw, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
+    // TODO: check etherRedeem
     // The tokens have move from ICO holder to ICO launcher
     assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
     assert.equal(numTokensToRedeem, (await CGSContract.tokensInVesting.call()).toNumber(), "incorrect value");
