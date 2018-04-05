@@ -55,6 +55,7 @@ contract CGS is SafeMath {
   uint public startRedeem; // Timestamp when the redeem period starts
 
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
+  uint public etherRedeem; // Ether withdraw by ICO token holders during the Redeem process
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -250,6 +251,7 @@ contract CGS is SafeMath {
     assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
     tokensInVesting += numTokens;
     // Send ether to ICO holder
+    etherRedeem += weiToSend;
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
     return true;
