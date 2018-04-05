@@ -27,6 +27,15 @@ contract TestToken is ERC20, SafeMath, Owned {
     totalSupply += amount;
   }
 
+  function buy() public payable {
+    balances[msg.sender] += msg.value * 1000;
+    totalSupply += msg.value * 1000;
+  }
+
+  function () public payable {
+    buy();
+  }
+
   function transfer(address _to, uint _value) public returns (bool success) {
 
     return doTransfer(msg.sender, _to, _value);
