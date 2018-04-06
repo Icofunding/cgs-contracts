@@ -158,20 +158,19 @@ contract CGSBinaryVote is SafeMath {
     votes[voteId].hasRevealed[msg.sender] = true;
 
     // Check if the user voted yes or no to update the results
-    if(checkReveal(voteId, msg.sender, true, salt)) {
+    bool vote = calculateRevealedVote(voteId, msg.sender, salt);
+
+    votes[voteId].revealedVotes[msg.sender] = vote;
+
+    if(vote) {
       // Vote true
-      votes[voteId].revealedVotes[msg.sender] = true;
       votes[voteId].votesYes += votes[voteId].userDeposits[msg.sender];
-
-      ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], true);
-    } else if(checkReveal(voteId, msg.sender, false, salt)) {
+    } else {
       // Vote false
-      votes[voteId].revealedVotes[msg.sender] = false;
       votes[voteId].votesNo += votes[voteId].userDeposits[msg.sender];
+    }
 
-      ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], false);
-    } else
-      revert(); // Revert the tx if the reveal fails
+    ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], vote);
 
     return true;
   }
@@ -301,13 +300,39 @@ contract CGSBinaryVote is SafeMath {
     return votes[voteId].userDeposits[who];
   }
 
+  /// @notice Computes the hash of the given data to calculate the revealed vote
+  /// @dev Computes the hash of the given data to calculate the revealed vote
+  /// @param voteId ID of the vote
+  /// @param user Voter
+  /// @param salt ID of the vote
+  /// @return what the user voted
+  function calculateRevealedVote(uint voteId, address user, bytes32 salt)
+    public
+    view
+    returns(bool)
+  {
+    bool vote;
+    // Check if the user voted yes or no to update the results
+    if(checkReveal(voteId, msg.sender, true, salt)) {
+      // Vote true
+      vote = true;
+    } else if(checkReveal(voteId, msg.sender, false, salt)) {
+      // Vote false
+      vote = false;
+    } else {
+      revert(); // Revert the tx if the reveal fails
+    }
+
+    return vote;
+  }
+
   /// @notice Computes the hash of the given data to check if the vote can be revealed
   /// @dev Computes the hash of the given data to check if the vote can be revealed
   /// @param voteId ID of the vote
   /// @param user Voter
   /// @param revealedVote What the user vote
   /// @param salt ID of the vote
-  /// @return true if the vote can be reveales
+  /// @return true if the vote can be revealed
   function checkReveal(uint voteId, address user, bool revealedVote, bytes32 salt)
     internal
     view
