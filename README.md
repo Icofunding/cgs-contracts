@@ -178,18 +178,18 @@ contract.methods.getRevealedVote(voteId, userAddress).call();
 
 #### calculateRevealedVote **Constant**
 
-Calculates the revealed vote of the user without reading on the blockchain.
-If the revealed vote does not equals with the vote on the blockchain, it will launch an exception.
+Calculates the revealed vote of the user without reading the blockchain.
+If the vote cannot be revealed, it will launch an exception.
 
 **Params:**
 * voteId (uint): ID of the vote
 * user (address): User address
-* salt (bytes32): keccak256 of the vote + pass phrase used to vote
+* salt (bytes32): random salt used to vote. sha3(salt)
 
 ```javascript
 let voteId = 0;
 let userAddress = "0x12345...";
-let salt = "0xaaabbbccc..."; // must be calculates using solidiitySha3() from Web3 v1 or sha3 with proper concatenation
+let salt = "0xaaabbbccc...";
 contract.methods.calculateRevealedVote(voteId, userAddress, salt).call();
 // true
 ```

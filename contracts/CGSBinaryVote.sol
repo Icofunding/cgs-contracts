@@ -304,7 +304,7 @@ contract CGSBinaryVote is SafeMath {
   /// @dev Computes the hash of the given data to calculate the revealed vote
   /// @param voteId ID of the vote
   /// @param user Voter
-  /// @param salt ID of the vote
+  /// @param salt random salt used to vote
   /// @return what the user voted
   function calculateRevealedVote(uint voteId, address user, bytes32 salt)
     public
