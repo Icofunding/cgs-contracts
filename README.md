@@ -419,6 +419,17 @@ contract.methods.calculateWeiToWithdrawAt().call();
 // 254235548895485215864
 ```
 
+#### isActive **Constant**
+
+Returns true is the CGS has started and there is still ether remaining to claim
+
+**Params:**
+
+```javascript
+contract.methods.isActive().call();
+// true
+```
+
 #### userDeposits **Constant**
 
 Returns the number of ICO tokens deposited per user

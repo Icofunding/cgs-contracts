@@ -150,6 +150,8 @@ contract CGS is SafeMath {
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   /// @param numTokens Number of tokens
   function depositTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
+    // The user cannot deposit tokens if there is no ether to claim
+    require(isActive());
     // The user has no tokens deposited in previous claims
     require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
     // Enough tokens allowed
@@ -340,6 +342,18 @@ contract CGS is SafeMath {
       weiToWithdraw = Vault(vaultAddress).etherBalance();
 
     return weiToWithdraw;
+  }
+
+  /// @notice Returns true if the CGS is active
+  /// @dev Returns true if the CGS is active
+  /// @return true if the CGS is active
+  function isActive() public view returns(bool) {
+    bool active = false;
+
+    if(now >= startDate && calculateWeiToWithdrawAt(now) < Vault(vaultAddress).etherBalance())
+      active = true;
+
+    return active;
   }
 
   /// @notice Changes the stage to _stage
