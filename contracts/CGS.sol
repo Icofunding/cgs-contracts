@@ -75,6 +75,7 @@ contract CGS is SafeMath {
   address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
+  event ev_NewStage(Stages stage);
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
@@ -99,13 +100,6 @@ contract CGS is SafeMath {
 
     if(newStage != stage) {
       setStage(newStage);
-
-      // Executed only once, when the a claim ends
-      if(newStage == Stages.ClaimPeriod) {
-        totalDeposit = 0;
-        currentClaim++;
-        setStage(Stages.ClaimPeriod);
-      }
     }
 
     _;
@@ -150,8 +144,6 @@ contract CGS is SafeMath {
     vaultAddress = new Vault(this);
     startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
-
-    setStage(Stages.ClaimPeriod);
   }
 
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
@@ -355,5 +347,20 @@ contract CGS is SafeMath {
   /// @param _stage New stage
   function setStage(Stages _stage) private {
     stage = _stage;
+
+    newStageHandler(stage);
+  }
+
+  /// @notice Handles the change to a new state
+  /// @dev Handles the change to a new state
+  /// @param _stage New stage
+  function newStageHandler(Stages _stage) private {
+    // Executed only once, when the a claim ends
+    if(_stage == Stages.ClaimPeriod) {
+      totalDeposit = 0;
+      currentClaim++;
+    }
+
+    ev_NewStage(_stage);
   }
 }

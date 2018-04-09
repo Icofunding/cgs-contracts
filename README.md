@@ -603,6 +603,13 @@ contract.methods.vaultAddress().call();
 
 ### CGS events
 
+#### ev_NewStage
+
+Launched every time the stage changes
+
+**Params:**
+* stage (uint): new stage
+
 #### ev_DepositTokens
 
 Launched every time a user deposits tokens.

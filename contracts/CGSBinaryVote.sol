@@ -78,10 +78,6 @@ contract CGSBinaryVote is SafeMath {
 
     if(newStage != votes[voteId].stage) {
       setStage(voteId, newStage);
-
-      // Executed only once
-      if(newStage == Stages.Settlement)
-        finalizeVote(voteId);
     }
 
     _;
@@ -384,6 +380,18 @@ contract CGSBinaryVote is SafeMath {
   /// @param _stage New stage
   function setStage(uint voteId, Stages _stage) private {
     votes[voteId].stage = _stage;
+
+    newStageHandler(voteId, _stage);
+  }
+
+  /// @notice Handles the change to a new state
+  /// @dev Handles the change to a new state
+  /// @param voteId ID of the vote
+  /// @param _stage New stage
+  function newStageHandler(uint voteId, Stages _stage) private {
+    // Executed only once
+    if(_stage == Stages.Settlement)
+      finalizeVote(voteId);
 
     ev_NewStage(voteId, _stage);
   }
