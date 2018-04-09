@@ -54,6 +54,7 @@ contract CGS is SafeMath {
   uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
   uint public startRedeem; // Timestamp when the redeem period starts
 
+  uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
   uint public etherRedeem; // Ether withdraw by ICO token holders during the Redeem process
 
@@ -174,6 +175,7 @@ contract CGS is SafeMath {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
+      tokensInVestingAtLastClaim = tokensInVesting;
       setStage(Stages.ClaimOpen);
 
       ev_OpenClaim(voteIds[currentClaim]);
@@ -334,7 +336,7 @@ contract CGS is SafeMath {
     if(weiToWithdraw > weiBalanceAtlastClaim)
       weiToWithdraw = weiBalanceAtlastClaim;
 
-    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
+    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
   }
 
   /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
