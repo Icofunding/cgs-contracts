@@ -23,4 +23,12 @@ contract FakeCGSBinaryVote {
   function finalizeVote(uint voteId) public {
     isVoteOpen = false;
   }
+
+  function getVotingProcessDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return 10 days;
+  }
 }

@@ -35,7 +35,7 @@ contract CGS is SafeMath {
    *   When the result of the vote is received, the state moves to the appropriate next stage.
    * - Redeem: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
    *   ICO holders can exhcnage theur ICO token for ether.
-   *   The state moves to ClaimEnded if startRedeem + TIME_FOR_REDEEM <= now.
+   *   The state moves to ClaimEnded if lastClaim + VOTING_DURATION + TIME_FOR_REDEEM <= now.
    *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
    * - ClaimEnded: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
    *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
@@ -52,7 +52,6 @@ contract CGS is SafeMath {
   uint public claimPrice; // Number of ICO tokens (plus decimals)
   uint public lastClaim; // Timestamp when the last claim was open
   uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
-  uint public startRedeem; // Timestamp when the redeem period starts
 
   uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
@@ -141,6 +140,8 @@ contract CGS is SafeMath {
     uint _startDate
   ) public {
     require(_weiPerSecond > 0);
+    require(CGSBinaryVote(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
+
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
@@ -282,8 +283,6 @@ contract CGS is SafeMath {
     } else {
       // Meh, the CGS voters thin that the funds are not well managed
       setStage(Stages.Redeem);
-
-      startRedeem = now;
     }
   }
 
@@ -318,7 +317,7 @@ contract CGS is SafeMath {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
-    if(s == Stages.Redeem && (startRedeem + TIME_FOR_REDEEM <= now))
+    if(s == Stages.Redeem && (lastClaim + CGSBinaryVote(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
       s = Stages.ClaimEnded;
 
     if(s == Stages.ClaimEnded && (lastClaim + TIME_BETWEEN_CLAIMS <= now))
