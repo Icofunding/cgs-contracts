@@ -64,6 +64,7 @@ contract CGSBinaryVote is SafeMath {
   event ev_NewVote(uint indexed voteId, address callback);
   event ev_Vote(uint indexed voteId, address who, uint amount);
   event ev_Reveal(uint indexed voteId, address who, uint amount, bool value);
+  event ev_Withdraw(uint indexed voteId, address who, uint amount);
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);
@@ -77,10 +78,6 @@ contract CGSBinaryVote is SafeMath {
 
     if(newStage != votes[voteId].stage) {
       setStage(voteId, newStage);
-
-      // Executed only once
-      if(newStage == Stages.Settlement)
-        finalizeVote(voteId);
     }
 
     _;
@@ -195,6 +192,8 @@ contract CGSBinaryVote is SafeMath {
 
     // Send tokens to the user
     assert(ERC20(cgsToken).transfer(msg.sender, numTokens));
+
+    ev_Withdraw(voteId, msg.sender, numTokens);
 
     return true;
   }
@@ -326,6 +325,39 @@ contract CGSBinaryVote is SafeMath {
     return vote;
   }
 
+  /// @notice Returns how much time last the voting process
+  /// @dev Returns how much time last the voting process
+  /// @return how much time last the voting process
+  function getVotingProcessDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_VOTE + TIME_TO_REVEAL;
+  }
+
+  /// @notice Returns how much time last the vote phase
+  /// @dev Returns how much time last the vote phase
+  /// @return how much time last the vote phase
+  function getVotePhaseDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_VOTE;
+  }
+
+  /// @notice Returns how much time last the reveal phase
+  /// @dev Returns how much time last the reveal phase
+  /// @return how much time last the reveal phase
+  function getRevealPhaseDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_REVEAL;
+  }
+
   /// @notice Computes the hash of the given data to check if the vote can be revealed
   /// @dev Computes the hash of the given data to check if the vote can be revealed
   /// @param voteId ID of the vote
@@ -348,6 +380,18 @@ contract CGSBinaryVote is SafeMath {
   /// @param _stage New stage
   function setStage(uint voteId, Stages _stage) private {
     votes[voteId].stage = _stage;
+
+    newStageHandler(voteId, _stage);
+  }
+
+  /// @notice Handles the change to a new state
+  /// @dev Handles the change to a new state
+  /// @param voteId ID of the vote
+  /// @param _stage New stage
+  function newStageHandler(uint voteId, Stages _stage) private {
+    // Executed only once
+    if(_stage == Stages.Settlement)
+      finalizeVote(voteId);
 
     ev_NewStage(voteId, _stage);
   }

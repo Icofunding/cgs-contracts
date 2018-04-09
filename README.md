@@ -209,6 +209,39 @@ contract.methods.getUserDeposit(voteId, userAddress).call();
 // 5000000000000000000000
 ```
 
+#### getVotingProcessDuration **Constant**
+
+Returns how much time last the voting process
+
+**Params:**
+
+```javascript
+contract.methods.getVotingProcessDuration().call();
+// 864000
+```
+
+#### getVotePhaseDuration **Constant**
+
+Returns how much time last the vote phase
+
+**Params:**
+
+```javascript
+contract.methods.getVotePhaseDuration().call();
+// 604800
+```
+
+#### getRevealPhaseDuration **Constant**
+
+Returns how much time last the reveal phase
+
+**Params:**
+
+```javascript
+contract.methods.getRevealPhaseDuration().call();
+// 259200
+```
+
 #### votes **Constant**
 
 Returns information about a vote:
@@ -287,6 +320,15 @@ Launched every time a user reveals his vote.
 * who (address): User address
 * amount (uint): Number of tokens used to vote
 * value (bool): revealed vote
+
+#### ev_Withdraw
+
+Launched every time a user withdraws his tokens after voting
+
+**Params:**
+* (indexed) voteId (uint): ID of the vote
+* who (address): User address
+* amount (uint): Number of tokens received (num tokens used to vote +/- penalization)
 
 
 ### CGS methods
@@ -375,6 +417,17 @@ Returns the actual stage of the claim. Possible return values are:
 ```javascript
 contract.methods.calculateWeiToWithdrawAt().call();
 // 254235548895485215864
+```
+
+#### isActive **Constant**
+
+Returns true is the CGS has started and there is still ether remaining to claim
+
+**Params:**
+
+```javascript
+contract.methods.isActive().call();
+// true
 ```
 
 #### userDeposits **Constant**
@@ -561,6 +614,13 @@ contract.methods.vaultAddress().call();
 
 ### CGS events
 
+#### ev_NewStage
+
+Launched every time the stage changes
+
+**Params:**
+* stage (uint): new stage
+
 #### ev_DepositTokens
 
 Launched every time a user deposits tokens.
@@ -583,6 +643,23 @@ Launched when a claim is open
 
 **Params:**
 * voteId (address): ID of the Vote in CGSBinaryVote
+
+#### ev_CashOut
+
+Launched every time a user withdraws tokens after a claim is open.
+
+**Params:**
+* who (address): User address
+* amount (uint): Number of tokens withdraw (deposited (-)? penalization)
+
+#### ev_Redeem
+
+Launched every time a user redeems tokens.
+
+**Params:**
+* who (address): User address
+* tokensSent (uint): Number of tokens sent to redeem
+* weiReceived (uint): Amount of wei received
 
 
 ### Vault methods

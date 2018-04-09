@@ -35,7 +35,7 @@ contract CGS is SafeMath {
    *   When the result of the vote is received, the state moves to the appropriate next stage.
    * - Redeem: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
    *   ICO holders can exhcnage theur ICO token for ether.
-   *   The state moves to ClaimEnded if startRedeem + TIME_FOR_REDEEM <= now.
+   *   The state moves to ClaimEnded if lastClaim + VOTING_DURATION + TIME_FOR_REDEEM <= now.
    *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
    * - ClaimEnded: Deposits and withdrawals are blocked. Users can cashout their ICO tokens.
    *   The state moves to ClaimPeriod if lastClaim + TIME_BETWEEN_CLAIMS <= now.
@@ -52,8 +52,8 @@ contract CGS is SafeMath {
   uint public claimPrice; // Number of ICO tokens (plus decimals)
   uint public lastClaim; // Timestamp when the last claim was open
   uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
-  uint public startRedeem; // Timestamp when the redeem period starts
 
+  uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
   uint public etherRedeem; // Ether withdraw by ICO token holders during the Redeem process
 
@@ -75,9 +75,13 @@ contract CGS is SafeMath {
   address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
+  event ev_NewStage(Stages stage);
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
+  event ev_CashOut(address who, uint amount);
+  event ev_Redeem(address who, uint tokensSent, uint weiReceived);
+
 
   modifier atStage(Stages _stage) {
     require(stage == _stage);
@@ -96,13 +100,6 @@ contract CGS is SafeMath {
 
     if(newStage != stage) {
       setStage(newStage);
-
-      // Executed only once, when the a claim ends
-      if(newStage == Stages.ClaimPeriod) {
-        totalDeposit = 0;
-        currentClaim++;
-        setStage(Stages.ClaimPeriod);
-      }
     }
 
     _;
@@ -137,6 +134,8 @@ contract CGS is SafeMath {
     uint _startDate
   ) public {
     require(_weiPerSecond > 0);
+    require(CGSBinaryVote(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
+
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
@@ -145,14 +144,14 @@ contract CGS is SafeMath {
     vaultAddress = new Vault(this);
     startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
-
-    setStage(Stages.ClaimPeriod);
   }
 
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   /// @param numTokens Number of tokens
   function depositTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
+    // The user cannot deposit tokens if there is no ether to claim
+    require(isActive());
     // The user has no tokens deposited in previous claims
     require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
     // Enough tokens allowed
@@ -171,6 +170,7 @@ contract CGS is SafeMath {
       voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
+      tokensInVestingAtLastClaim = tokensInVesting;
       setStage(Stages.ClaimOpen);
 
       ev_OpenClaim(voteIds[currentClaim]);
@@ -232,6 +232,8 @@ contract CGS is SafeMath {
 
         // Cash out
         assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
+
+        ev_CashOut(msg.sender, tokensToCashOut);
       }
     }
   }
@@ -254,6 +256,8 @@ contract CGS is SafeMath {
     etherRedeem += weiToSend;
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
+    ev_Redeem(msg.sender, numTokens, weiToSend);
+
     return true;
   }
 
@@ -273,8 +277,6 @@ contract CGS is SafeMath {
     } else {
       // Meh, the CGS voters thin that the funds are not well managed
       setStage(Stages.Redeem);
-
-      startRedeem = now;
     }
   }
 
@@ -309,7 +311,7 @@ contract CGS is SafeMath {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
-    if(s == Stages.Redeem && (startRedeem + TIME_FOR_REDEEM <= now))
+    if(s == Stages.Redeem && (lastClaim + CGSBinaryVote(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
       s = Stages.ClaimEnded;
 
     if(s == Stages.ClaimEnded && (lastClaim + TIME_BETWEEN_CLAIMS <= now))
@@ -327,7 +329,7 @@ contract CGS is SafeMath {
     if(weiToWithdraw > weiBalanceAtlastClaim)
       weiToWithdraw = weiBalanceAtlastClaim;
 
-    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVesting);
+    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
   }
 
   /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
@@ -342,10 +344,37 @@ contract CGS is SafeMath {
     return weiToWithdraw;
   }
 
+  /// @notice Returns true if the CGS is active
+  /// @dev Returns true if the CGS is active
+  /// @return true if the CGS is active
+  function isActive() public view returns(bool) {
+    bool active = false;
+
+    if(now >= startDate && calculateWeiToWithdrawAt(now) < Vault(vaultAddress).etherBalance())
+      active = true;
+
+    return active;
+  }
+
   /// @notice Changes the stage to _stage
   /// @dev Changes the stage to _stage
   /// @param _stage New stage
   function setStage(Stages _stage) private {
     stage = _stage;
+
+    newStageHandler(stage);
+  }
+
+  /// @notice Handles the change to a new state
+  /// @dev Handles the change to a new state
+  /// @param _stage New stage
+  function newStageHandler(Stages _stage) private {
+    // Executed only once, when the a claim ends
+    if(_stage == Stages.ClaimPeriod) {
+      totalDeposit = 0;
+      currentClaim++;
+    }
+
+    ev_NewStage(_stage);
   }
 }

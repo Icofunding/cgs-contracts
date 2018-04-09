@@ -53,6 +53,11 @@ contract('CGSBinaryVote', function(accounts) {
     // Default value for all variables
     assert.equal(TestTokenContract.address, await CGSBinaryVoteContract.cgsToken.call(), "incorrect value");
     assert.equal(0, (await CGSBinaryVoteContract.numVotes.call()).toNumber(), "incorrect number of votes");
+
+    // Constants
+    assert.equal(TIME_TO_VOTE, (await CGSBinaryVoteContract.getVotePhaseDuration.call()).toNumber(), "incorrect time");
+    assert.equal(TIME_TO_REVEAL, (await CGSBinaryVoteContract.getRevealPhaseDuration.call()).toNumber(), "incorrect time");
+    assert.equal(TIME_TO_VOTE + TIME_TO_REVEAL, (await CGSBinaryVoteContract.getVotingProcessDuration.call()).toNumber(), "incorrect time");
   });
 
   it("Start a vote", async function() {

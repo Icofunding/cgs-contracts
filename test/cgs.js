@@ -64,6 +64,7 @@ contract('CGS', function(accounts) {
     assert.equal(0, (await CGSContract.weiWithdrawToDate.call()).toNumber(), "incorrect weiWithdrawToDate");
     assert.equal(0, (await CGSContract.etherRedeem.call()).toNumber(), "incorrect etherRedeem");
     assert.equal(timestamp, (await CGSContract.startDate.call()).toNumber(), "incorrect date");
+    assert.isFalse(await CGSContract.isActive.call(), "incorrect value");
 
   });
 
@@ -71,10 +72,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -97,10 +103,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -128,10 +139,15 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 250;
     let numTokensToWithdraw = 150;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -155,10 +171,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -183,10 +204,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -205,10 +231,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -305,10 +336,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
@@ -332,10 +368,15 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
     // Approve and transferFrom to move tokens to the contract
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
