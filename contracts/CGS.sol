@@ -78,6 +78,9 @@ contract CGS is SafeMath {
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
+  event ev_CashOut(address who, uint amount);
+  event ev_Redeem(address who, uint tokensSent, uint weiReceived);
+
 
   modifier atStage(Stages _stage) {
     require(stage == _stage);
@@ -232,6 +235,8 @@ contract CGS is SafeMath {
 
         // Cash out
         assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
+
+        ev_CashOut(msg.sender, tokensToCashOut);
       }
     }
   }
@@ -253,6 +258,8 @@ contract CGS is SafeMath {
     // Send ether to ICO holder
     etherRedeem += weiToSend;
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
+
+    ev_Redeem(msg.sender, numTokens, weiToSend);
 
     return true;
   }

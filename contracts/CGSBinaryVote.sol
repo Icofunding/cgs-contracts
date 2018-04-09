@@ -64,6 +64,7 @@ contract CGSBinaryVote is SafeMath {
   event ev_NewVote(uint indexed voteId, address callback);
   event ev_Vote(uint indexed voteId, address who, uint amount);
   event ev_Reveal(uint indexed voteId, address who, uint amount, bool value);
+  event ev_Withdraw(uint indexed voteId, address who, uint amount);
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);
@@ -195,6 +196,8 @@ contract CGSBinaryVote is SafeMath {
 
     // Send tokens to the user
     assert(ERC20(cgsToken).transfer(msg.sender, numTokens));
+
+    ev_Withdraw(voteId, msg.sender, numTokens);
 
     return true;
   }

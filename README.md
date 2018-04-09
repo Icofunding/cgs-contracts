@@ -288,6 +288,15 @@ Launched every time a user reveals his vote.
 * amount (uint): Number of tokens used to vote
 * value (bool): revealed vote
 
+#### ev_Withdraw
+
+Launched every time a user withdraws his tokens after voting
+
+**Params:**
+* (indexed) voteId (uint): ID of the vote
+* who (address): User address
+* amount (uint): Number of tokens received (num tokens used to vote +/- penalization)
+
 
 ### CGS methods
 
@@ -583,6 +592,23 @@ Launched when a claim is open
 
 **Params:**
 * voteId (address): ID of the Vote in CGSBinaryVote
+
+#### ev_CashOut
+
+Launched every time a user withdraws tokens after a claim is open.
+
+**Params:**
+* who (address): User address
+* amount (uint): Number of tokens withdraw (deposited (-)? penalization)
+
+#### ev_Redeem
+
+Launched every time a user redeems tokens.
+
+**Params:**
+* who (address): User address
+* tokensSent (uint): Number of tokens sent to redeem
+* weiReceived (uint): Amount of wei received
 
 
 ### Vault methods
