@@ -209,6 +209,39 @@ contract.methods.getUserDeposit(voteId, userAddress).call();
 // 5000000000000000000000
 ```
 
+#### getVotingProcessDuration **Constant**
+
+Returns how much time last the voting process
+
+**Params:**
+
+```javascript
+contract.methods.getVotingProcessDuration().call();
+// 864000
+```
+
+#### getVotePhaseDuration **Constant**
+
+Returns how much time last the vote phase
+
+**Params:**
+
+```javascript
+contract.methods.getVotePhaseDuration().call();
+// 604800
+```
+
+#### getRevealPhaseDuration **Constant**
+
+Returns how much time last the reveal phase
+
+**Params:**
+
+```javascript
+contract.methods.getRevealPhaseDuration().call();
+// 259200
+```
+
 #### votes **Constant**
 
 Returns information about a vote:

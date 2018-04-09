@@ -329,6 +329,39 @@ contract CGSBinaryVote is SafeMath {
     return vote;
   }
 
+  /// @notice Returns how much time last the voting process
+  /// @dev Returns how much time last the voting process
+  /// @return how much time last the voting process
+  function getVotingProcessDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_VOTE + TIME_TO_REVEAL;
+  }
+
+  /// @notice Returns how much time last the vote phase
+  /// @dev Returns how much time last the vote phase
+  /// @return how much time last the vote phase
+  function getVotePhaseDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_VOTE;
+  }
+
+  /// @notice Returns how much time last the reveal phase
+  /// @dev Returns how much time last the reveal phase
+  /// @return how much time last the reveal phase
+  function getRevealPhaseDuration()
+    public
+    pure
+    returns(uint)
+  {
+    return TIME_TO_REVEAL;
+  }
+
   /// @notice Computes the hash of the given data to check if the vote can be revealed
   /// @dev Computes the hash of the given data to check if the vote can be revealed
   /// @param voteId ID of the vote
