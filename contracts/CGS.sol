@@ -327,6 +327,18 @@ contract CGS is SafeMath {
     return numTokens;
   }
 
+  /// @notice Returns the actual claim
+  /// @dev Returns the actual claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+  /// @return the actual claim
+  function getCurrentClaim() public view returns(uint) {
+    uint claim = currentClaim;
+
+    if(stage != getStage() && getStage() == Stages.ClaimPeriod)
+      claim++;
+
+    return claim;
+  }
+
   /// @notice Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
   /// @dev Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
   /// @param user Address of he user
@@ -337,7 +349,7 @@ contract CGS is SafeMath {
     uint claim = claimDeposited[user];
 
     if(claim != 0) {
-      if(claim != currentClaim || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
+      if(claim != getCurrentClaim() || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
         tokensToUser = userDeposits[user];
 
         // If the claim did not succeed

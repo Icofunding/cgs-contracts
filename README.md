@@ -595,6 +595,17 @@ contract.methods.getTotalDeposit().call();
 // 500000000000000000000
 ```
 
+#### getCurrentClaim **Constant**
+
+Returns the actual claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+
+**Params:**
+
+```javascript
+contract.methods.getCurrentClaim().call();
+// 1
+```
+
 #### icoLauncherWallet **Constant**
 
 Returns the address of the ICO launcher
