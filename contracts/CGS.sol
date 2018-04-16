@@ -55,7 +55,7 @@ contract CGS is SafeMath {
 
   uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
-  uint public etherRedeem; // Ether withdraw by ICO token holders during the Redeem process
+  uint public weiRedeem; // Ether withdraw by ICO token holders during the Redeem process
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -248,7 +248,7 @@ contract CGS is SafeMath {
     assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
     tokensInVesting += numTokens;
     // Send ether to ICO holder
-    etherRedeem += weiToSend;
+    weiRedeem += weiToSend;
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
     ev_Redeem(msg.sender, numTokens, weiToSend);
@@ -278,11 +278,7 @@ contract CGS is SafeMath {
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
   function withdrawWei() public onlyIcoLauncher wakeVoter timedTransitions {
-    uint weiToWithdraw = calculateWeiToWithdrawAt(now);
-
-    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
-    if(stage == Stages.ClaimOpen || stage == Stages.Redeem)
-      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+    uint weiToWithdraw = calculateWeiToWithdraw();
 
     weiWithdrawToDate += weiToWithdraw;
 
@@ -339,8 +335,8 @@ contract CGS is SafeMath {
     return claim;
   }
 
-  /// @notice Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
-  /// @dev Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
+  /// @notice Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher
+  /// @dev Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher
   /// @param user Address of he user
   /// @return a tuple with the number of tokens to send to the user and the ICO launcher
   function tokensToCashOut(address user) public view returns (uint, uint) {
@@ -349,7 +345,7 @@ contract CGS is SafeMath {
     uint claim = claimDeposited[user];
 
     if(claim != 0) {
-      if(claim != getCurrentClaim() || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
+      if(claim != getCurrentClaim() || getStage() == Stages.ClaimEnded || getStage() == Stages.Redeem) {
         tokensToUser = userDeposits[user];
 
         // If the claim did not succeed
@@ -364,41 +360,63 @@ contract CGS is SafeMath {
     return (tokensToUser, tokensToIcoLauncher);
   }
 
-  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens
+  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens.
   /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
   /// @param numTokens Number of tokens to exchange
   /// @return the amount of Ether to be sent in exchange of the tokens
   function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
-    uint weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+    uint etherPerTokens = 0;
 
-    if(weiToWithdraw > weiBalanceAtlastClaim)
-      weiToWithdraw = weiBalanceAtlastClaim;
+    if(getStage() == Stages.Redeem) {
+      uint weiToWithdraw = calculateWeiToWithdraw();
 
-    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+      etherPerTokens = (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+    }
+
+    return etherPerTokens;
   }
 
-  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
-  function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
-    uint weiToWithdraw = (date - startDate) * weiPerSecond - weiWithdrawToDate;
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw
+  /// @return the amount of Wei available for the ICO launcher to withdraw
+  function calculateWeiToWithdraw() public view returns(uint) {
+    uint weiToWithdraw;
 
-    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
-      weiToWithdraw = Vault(vaultAddress).etherBalance();
+    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
+    if(getStage() == Stages.ClaimOpen || getStage() == Stages.Redeem) {
+      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+
+      if(weiToWithdraw > weiBalanceAtlastClaim)
+        weiToWithdraw = weiBalanceAtlastClaim;
+    } else {
+      weiToWithdraw = calculateWeiToWithdrawAt(now);
+
+      if(weiToWithdraw > Vault(vaultAddress).etherBalance())
+        weiToWithdraw = Vault(vaultAddress).etherBalance();
+    }
 
     return weiToWithdraw;
   }
 
   /// @notice Returns true if the CGS is active
   /// @dev Returns true if the CGS is active
+  /// NOTE: To be changed for two new stages
   /// @return true if the CGS is active
   function isActive() public view returns(bool) {
     bool active = false;
 
-    if(now >= startDate && calculateWeiToWithdrawAt(now) < Vault(vaultAddress).etherBalance())
+    if(now >= startDate && calculateWeiToWithdraw() < Vault(vaultAddress).etherBalance())
       active = true;
 
     return active;
+  }
+
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
+  function calculateWeiToWithdrawAt(uint date) internal view returns(uint) {
+
+    return (date - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
   }
 
   /// @notice Changes the stage to _stage

@@ -405,18 +405,14 @@ contract.methods.calculateEtherPerTokens(numTokens).call();
 // 25000000000000000000000
 ```
 
-#### calculateWeiToWithdrawAt **Constant**
+#### calculateWeiToWithdraw **Constant**
 
-Returns the actual stage of the claim. Possible return values are:
-0: ClaimPeriod,
-1: ClaimOpen,
-2: Redeem,
-3: ClaimEnded
+Returns the amount of Wei available for the ICO launcher to withdraw
 
 **Params:**
 
 ```javascript
-contract.methods.calculateWeiToWithdrawAt().call();
+contract.methods.calculateWeiToWithdraw().call();
 // 254235548895485215864
 ```
 
@@ -572,7 +568,7 @@ contract.methods.weiWithdrawToDate().call();
 
 #### tokensToCashOut **Constant**
 
-Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher after a claim is resolved.
+Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher after a claim is resolved.
 Returns an array with [tokensToUser, tokensToIcoLauncher]
 
 **Params:**

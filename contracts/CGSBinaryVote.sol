@@ -51,7 +51,7 @@ contract CGSBinaryVote is SafeMath {
     uint totalVotes; // Total number of votes (at the moment of voting, no matter if revealed or not)
     mapping (address => bytes32) secretVotes; // Hashes of votes
     mapping (address => bool) revealedVotes; // Votes in plain text
-    mapping (address => bool) hasRevealed; // True if the user has revealed is vote
+    mapping (address => bool) hasRevealed; // True if the user has revealed his vote
     mapping (address => uint) userDeposits; // Amount of CGS tokens deposited for this vote.
   }
 
