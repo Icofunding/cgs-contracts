@@ -315,6 +315,18 @@ contract CGS is SafeMath {
     return s;
   }
 
+  /// @notice Returns the actual number of tokens deposited to open a claim
+  /// @dev Returns the actual number of tokens deposited to open a claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+  /// @return the actual number of tokens deposited to open a claim
+  function getTotalDeposit() public view returns(uint) {
+    uint numTokens = totalDeposit;
+
+    if(stage != getStage() && getStage() == Stages.ClaimPeriod)
+      numTokens = 0;
+
+    return numTokens;
+  }
+
   /// @notice Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
   /// @dev Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
   /// @param user Address of he user

@@ -447,6 +447,7 @@ contract.methods.userDeposits(userAddress).call();
 #### totalDeposit **Constant**
 
 Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
+DEPRECATED: See getTotalDeposit
 
 **Params:**
 
@@ -581,6 +582,17 @@ Returns an array with [tokensToUser, tokensToIcoLauncher]
 let userAddress = "0x12345...";
 contract.methods.tokensToCashOut(userAddress).call();
 // [500000000000000000000, 5000000000000000000]
+```
+
+#### getTotalDeposit **Constant**
+
+Returns the actual number of tokens deposited to open a claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+
+**Params:**
+
+```javascript
+contract.methods.getTotalDeposit().call();
+// 500000000000000000000
 ```
 
 #### icoLauncherWallet **Constant**
