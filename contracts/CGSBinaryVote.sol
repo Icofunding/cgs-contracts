@@ -51,7 +51,7 @@ contract CGSBinaryVote is SafeMath {
     uint totalVotes; // Total number of votes (at the moment of voting, no matter if revealed or not)
     mapping (address => bytes32) secretVotes; // Hashes of votes
     mapping (address => bool) revealedVotes; // Votes in plain text
-    mapping (address => bool) hasRevealed; // True if the user has revealed is vote
+    mapping (address => bool) hasRevealed; // True if the user has revealed his vote
     mapping (address => uint) userDeposits; // Amount of CGS tokens deposited for this vote.
   }
 
@@ -155,11 +155,11 @@ contract CGSBinaryVote is SafeMath {
     votes[voteId].hasRevealed[msg.sender] = true;
 
     // Check if the user voted yes or no to update the results
-    bool vote = calculateRevealedVote(voteId, msg.sender, salt);
+    bool revealedvote = calculateRevealedVote(voteId, msg.sender, salt);
 
-    votes[voteId].revealedVotes[msg.sender] = vote;
+    votes[voteId].revealedVotes[msg.sender] = revealedvote;
 
-    if(vote) {
+    if(revealedvote) {
       // Vote true
       votes[voteId].votesYes += votes[voteId].userDeposits[msg.sender];
     } else {
@@ -167,7 +167,7 @@ contract CGSBinaryVote is SafeMath {
       votes[voteId].votesNo += votes[voteId].userDeposits[msg.sender];
     }
 
-    ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], vote);
+    ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
 
     return true;
   }
@@ -310,19 +310,19 @@ contract CGSBinaryVote is SafeMath {
     view
     returns(bool)
   {
-    bool vote;
+    bool revealedvote;
     // Check if the user voted yes or no to update the results
-    if(checkReveal(voteId, msg.sender, true, salt)) {
+    if(checkReveal(voteId, user, true, salt)) {
       // Vote true
-      vote = true;
-    } else if(checkReveal(voteId, msg.sender, false, salt)) {
+      revealedvote = true;
+    } else if(checkReveal(voteId, user, false, salt)) {
       // Vote false
-      vote = false;
+      revealedvote = false;
     } else {
       revert(); // Revert the tx if the reveal fails
     }
 
-    return vote;
+    return revealedvote;
   }
 
   /// @notice Returns how much time last the voting process

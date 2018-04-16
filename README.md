@@ -163,7 +163,8 @@ contract.methods.hasUserRevealed(voteId, userAddress).call();
 
 #### getRevealedVote **Constant**
 
-Returns the revealed vote of the user
+Returns the revealed vote of the user. You must call hasUserRevealed first.
+If the user has revealed, if launcher an exception.
 
 **Params:**
 * voteId (uint): ID of the vote
@@ -404,18 +405,14 @@ contract.methods.calculateEtherPerTokens(numTokens).call();
 // 25000000000000000000000
 ```
 
-#### calculateWeiToWithdrawAt **Constant**
+#### calculateWeiToWithdraw **Constant**
 
-Returns the actual stage of the claim. Possible return values are:
-0: ClaimPeriod,
-1: ClaimOpen,
-2: Redeem,
-3: ClaimEnded
+Returns the amount of Wei available for the ICO launcher to withdraw
 
 **Params:**
 
 ```javascript
-contract.methods.calculateWeiToWithdrawAt().call();
+contract.methods.calculateWeiToWithdraw().call();
 // 254235548895485215864
 ```
 
@@ -446,6 +443,7 @@ contract.methods.userDeposits(userAddress).call();
 #### totalDeposit **Constant**
 
 Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
+DEPRECATED: See getTotalDeposit
 
 **Params:**
 
@@ -566,6 +564,42 @@ Returns the Wei that the ICO launcher has withdraw to date
 ```javascript
 contract.methods.weiWithdrawToDate().call();
 // 120000000000000000000
+```
+
+#### tokensToCashOut **Constant**
+
+Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher after a claim is resolved.
+Returns an array with [tokensToUser, tokensToIcoLauncher]
+
+**Params:**
+* who (address): User address
+
+```javascript
+let userAddress = "0x12345...";
+contract.methods.tokensToCashOut(userAddress).call();
+// [500000000000000000000, 5000000000000000000]
+```
+
+#### getTotalDeposit **Constant**
+
+Returns the actual number of tokens deposited to open a claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+
+**Params:**
+
+```javascript
+contract.methods.getTotalDeposit().call();
+// 500000000000000000000
+```
+
+#### getCurrentClaim **Constant**
+
+Returns the actual claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+
+**Params:**
+
+```javascript
+contract.methods.getCurrentClaim().call();
+// 1
 ```
 
 #### icoLauncherWallet **Constant**

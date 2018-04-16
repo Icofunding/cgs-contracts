@@ -55,7 +55,7 @@ contract CGS is SafeMath {
 
   uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
-  uint public etherRedeem; // Ether withdraw by ICO token holders during the Redeem process
+  uint public weiRedeem; // Ether withdraw by ICO token holders during the Redeem process
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -79,7 +79,7 @@ contract CGS is SafeMath {
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
-  event ev_CashOut(address who, uint amount);
+  event ev_CashOut(address who, uint tokensToUser, uint tokensToIcolauncher);
   event ev_Redeem(address who, uint tokensSent, uint weiReceived);
 
 
@@ -210,31 +210,26 @@ contract CGS is SafeMath {
   /// @notice Withdraws all tokens after a claim finished
   /// @dev Withdraws all tokens after a claim finished
   function cashOut() public wakeVoter timedTransitions returns(bool) {
-    uint claim = claimDeposited[msg.sender];
+    uint tokensToUser;
+    uint tokensToIcoLauncher;
+    (tokensToUser, tokensToIcoLauncher) = tokensToCashOut(msg.sender);
 
-    if(claim != 0) {
-      if(claim != currentClaim || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
-        bool isProjectOk = claimResults[claim];
-        uint tokensToCashOut = userDeposits[msg.sender];
+    if(tokensToUser > 0) {
+      // Update balance
+      userDeposits[msg.sender] = 0;
+      claimDeposited[msg.sender] = 0;
 
-        // Update balance
-        userDeposits[msg.sender] = 0;
-        claimDeposited[msg.sender] = 0;
+      // Make transfers
 
-        // If the claim does not succeded
-        if(isProjectOk) {
-          // 1% penalization goes to the ICO launcher
-          uint tokensToIcoLauncher = tokensToCashOut/100;
-          tokensToCashOut -= tokensToIcoLauncher;
+      // To user (99-100%)
+      assert(ERC20(tokenAddress).transfer(msg.sender, tokensToUser));
 
-          assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
-        }
-
-        // Cash out
-        assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
-
-        ev_CashOut(msg.sender, tokensToCashOut);
+      // To ICO launcher if the claim did not succeed
+      if (tokensToIcoLauncher > 0) {
+        assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
       }
+
+      ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
     }
   }
 
@@ -253,7 +248,7 @@ contract CGS is SafeMath {
     assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
     tokensInVesting += numTokens;
     // Send ether to ICO holder
-    etherRedeem += weiToSend;
+    weiRedeem += weiToSend;
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
     ev_Redeem(msg.sender, numTokens, weiToSend);
@@ -283,11 +278,7 @@ contract CGS is SafeMath {
   /// @notice Withdraws money by the ICO launcher according to the roadmap
   /// @dev Withdraws money by the ICO launcher according to the roadmap
   function withdrawWei() public onlyIcoLauncher wakeVoter timedTransitions {
-    uint weiToWithdraw = calculateWeiToWithdrawAt(now);
-
-    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
-    if(stage == Stages.ClaimOpen || stage == Stages.Redeem)
-      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+    uint weiToWithdraw = calculateWeiToWithdraw();
 
     weiWithdrawToDate += weiToWithdraw;
 
@@ -320,40 +311,112 @@ contract CGS is SafeMath {
     return s;
   }
 
-  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens
-  /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
-  /// @param numTokens Number of tokens to exchange
-  function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
-    uint weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+  /// @notice Returns the actual number of tokens deposited to open a claim
+  /// @dev Returns the actual number of tokens deposited to open a claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+  /// @return the actual number of tokens deposited to open a claim
+  function getTotalDeposit() public view returns(uint) {
+    uint numTokens = totalDeposit;
 
-    if(weiToWithdraw > weiBalanceAtlastClaim)
-      weiToWithdraw = weiBalanceAtlastClaim;
+    if(stage != getStage() && getStage() == Stages.ClaimPeriod)
+      numTokens = 0;
 
-    return (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+    return numTokens;
   }
 
-  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
-  function calculateWeiToWithdrawAt(uint date) public view returns(uint) {
-    uint weiToWithdraw = (date - startDate) * weiPerSecond - weiWithdrawToDate;
+  /// @notice Returns the actual claim
+  /// @dev Returns the actual claim (taking into account discrepancies between actual stage and the one stored on the blockchain)
+  /// @return the actual claim
+  function getCurrentClaim() public view returns(uint) {
+    uint claim = currentClaim;
 
-    if(weiToWithdraw > Vault(vaultAddress).etherBalance())
-      weiToWithdraw = Vault(vaultAddress).etherBalance();
+    if(stage != getStage() && getStage() == Stages.ClaimPeriod)
+      claim++;
+
+    return claim;
+  }
+
+  /// @notice Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher
+  /// @dev Calculates the number of tokens to cashout by the user and the ones that go to the ICO launcher
+  /// @param user Address of he user
+  /// @return a tuple with the number of tokens to send to the user and the ICO launcher
+  function tokensToCashOut(address user) public view returns (uint, uint) {
+    uint tokensToUser;
+    uint tokensToIcoLauncher;
+    uint claim = claimDeposited[user];
+
+    if(claim != 0) {
+      if(claim != getCurrentClaim() || getStage() == Stages.ClaimEnded || getStage() == Stages.Redeem) {
+        tokensToUser = userDeposits[user];
+
+        // If the claim did not succeed
+        if(claimResults[claim]) {
+          // 1% penalization goes to the ICO launcher
+          tokensToIcoLauncher = tokensToUser/100;
+          tokensToUser -= tokensToIcoLauncher;
+        }
+      }
+    }
+
+    return (tokensToUser, tokensToIcoLauncher);
+  }
+
+  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens.
+  /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
+  /// @param numTokens Number of tokens to exchange
+  /// @return the amount of Ether to be sent in exchange of the tokens
+  function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
+    uint etherPerTokens = 0;
+
+    if(getStage() == Stages.Redeem) {
+      uint weiToWithdraw = calculateWeiToWithdraw();
+
+      etherPerTokens = (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+    }
+
+    return etherPerTokens;
+  }
+
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw
+  /// @return the amount of Wei available for the ICO launcher to withdraw
+  function calculateWeiToWithdraw() public view returns(uint) {
+    uint weiToWithdraw;
+
+    // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
+    if(getStage() == Stages.ClaimOpen || getStage() == Stages.Redeem) {
+      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
+
+      if(weiToWithdraw > weiBalanceAtlastClaim)
+        weiToWithdraw = weiBalanceAtlastClaim;
+    } else {
+      weiToWithdraw = calculateWeiToWithdrawAt(now);
+
+      if(weiToWithdraw > Vault(vaultAddress).etherBalance())
+        weiToWithdraw = Vault(vaultAddress).etherBalance();
+    }
 
     return weiToWithdraw;
   }
 
   /// @notice Returns true if the CGS is active
   /// @dev Returns true if the CGS is active
+  /// NOTE: To be changed for two new stages
   /// @return true if the CGS is active
   function isActive() public view returns(bool) {
     bool active = false;
 
-    if(now >= startDate && calculateWeiToWithdrawAt(now) < Vault(vaultAddress).etherBalance())
+    if(now >= startDate && calculateWeiToWithdraw() < Vault(vaultAddress).etherBalance())
       active = true;
 
     return active;
+  }
+
+  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
+  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
+  function calculateWeiToWithdrawAt(uint date) internal view returns(uint) {
+
+    return (date - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
   }
 
   /// @notice Changes the stage to _stage
