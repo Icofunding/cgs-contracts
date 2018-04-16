@@ -79,7 +79,7 @@ contract CGS is SafeMath {
   event ev_DepositTokens(address who, uint amount);
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
-  event ev_CashOut(address who, uint amount);
+  event ev_CashOut(address who, uint tokensToUser, uint tokensToIcolauncher);
   event ev_Redeem(address who, uint tokensSent, uint weiReceived);
 
 
@@ -210,31 +210,26 @@ contract CGS is SafeMath {
   /// @notice Withdraws all tokens after a claim finished
   /// @dev Withdraws all tokens after a claim finished
   function cashOut() public wakeVoter timedTransitions returns(bool) {
-    uint claim = claimDeposited[msg.sender];
+    uint tokensToUser;
+    uint tokensToIcoLauncher;
+    (tokensToUser, tokensToIcoLauncher) = tokensToCashOut(msg.sender);
 
-    if(claim != 0) {
-      if(claim != currentClaim || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
-        bool isProjectOk = claimResults[claim];
-        uint tokensToCashOut = userDeposits[msg.sender];
+    if(tokensToUser > 0) {
+      // Update balance
+      userDeposits[msg.sender] = 0;
+      claimDeposited[msg.sender] = 0;
 
-        // Update balance
-        userDeposits[msg.sender] = 0;
-        claimDeposited[msg.sender] = 0;
+      // Make transfers
 
-        // If the claim does not succeded
-        if(isProjectOk) {
-          // 1% penalization goes to the ICO launcher
-          uint tokensToIcoLauncher = tokensToCashOut/100;
-          tokensToCashOut -= tokensToIcoLauncher;
+      // To user (99-100%)
+      assert(ERC20(tokenAddress).transfer(msg.sender, tokensToUser));
 
-          assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
-        }
-
-        // Cash out
-        assert(ERC20(tokenAddress).transfer(msg.sender, tokensToCashOut));
-
-        ev_CashOut(msg.sender, tokensToCashOut);
+      // To ICO launcher if the claim did not succeed
+      if (tokensToIcoLauncher > 0) {
+        assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
       }
+
+      ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
     }
   }
 
@@ -320,9 +315,35 @@ contract CGS is SafeMath {
     return s;
   }
 
+  /// @notice Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
+  /// @dev Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher
+  /// @param user Address of he user
+  /// @return a tuple with the number of tokens to send to the user and the ICO launcher
+  function tokensToCashOut(address user) public view returns (uint, uint) {
+    uint tokensToUser;
+    uint tokensToIcoLauncher;
+    uint claim = claimDeposited[user];
+
+    if(claim != 0) {
+      if(claim != currentClaim || stage == Stages.ClaimEnded || stage == Stages.Redeem) {
+        tokensToUser = userDeposits[user];
+
+        // If the claim did not succeed
+        if(claimResults[claim]) {
+          // 1% penalization goes to the ICO launcher
+          tokensToIcoLauncher = tokensToUser/100;
+          tokensToUser -= tokensToIcoLauncher;
+        }
+      }
+    }
+
+    return (tokensToUser, tokensToIcoLauncher);
+  }
+
   /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens
   /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
   /// @param numTokens Number of tokens to exchange
+  /// @return the amount of Ether to be sent in exchange of the tokens
   function calculateEtherPerTokens(uint numTokens) public view returns(uint) {
     uint weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
 

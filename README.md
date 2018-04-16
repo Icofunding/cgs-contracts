@@ -163,7 +163,8 @@ contract.methods.hasUserRevealed(voteId, userAddress).call();
 
 #### getRevealedVote **Constant**
 
-Returns the revealed vote of the user
+Returns the revealed vote of the user. You must call hasUserRevealed first.
+If the user has revealed, if launcher an exception.
 
 **Params:**
 * voteId (uint): ID of the vote
@@ -566,6 +567,20 @@ Returns the Wei that the ICO launcher has withdraw to date
 ```javascript
 contract.methods.weiWithdrawToDate().call();
 // 120000000000000000000
+```
+
+#### tokensToCashOut **Constant**
+
+Calculates the number of tokens to cashout by the user and the ones that to to the ICO launcher after a claim is resolved.
+Returns an array with [tokensToUser, tokensToIcoLauncher]
+
+**Params:**
+* who (address): User address
+
+```javascript
+let userAddress = "0x12345...";
+contract.methods.tokensToCashOut(userAddress).call();
+// [500000000000000000000, 5000000000000000000]
 ```
 
 #### icoLauncherWallet **Constant**
