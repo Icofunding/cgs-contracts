@@ -485,14 +485,14 @@ contract.methods.tokensInVesting().call();
 // 554570000000000000000
 ```
 
-#### etherRedeem **Constant**
+#### weiRedeem **Constant**
 
 Returns the ether withdraw by ICO token holders during the Redeem process
 
 **Params:**
 
 ```javascript
-contract.methods.etherRedeem().call();
+contract.methods.weiRedeem().call();
 // 5560000000000000000
 ```
 
