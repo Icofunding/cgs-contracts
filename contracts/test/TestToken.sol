@@ -7,10 +7,12 @@ import '../util/Owned.sol';
 /**
  * Standard ERC20 token with fake data. ONLY FOR TESTING
  */
-contract TestToken is ERC20, SafeMath, Owned {
+contract TestToken is ERC20, Owned {
   string public name;
   string public symbol;
   uint public decimals;
+
+  using SafeMath for uint;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -44,7 +46,7 @@ contract TestToken is ERC20, SafeMath, Owned {
   function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
     var _allowance = allowed[_from][msg.sender];
 
-    allowed[_from][msg.sender] = safeSub(_allowance, _value);
+    allowed[_from][msg.sender] = _allowance.sub(_value);
 
     return doTransfer(_from, _to, _value);
   }
@@ -68,8 +70,8 @@ contract TestToken is ERC20, SafeMath, Owned {
   }
 
   function doTransfer(address _from, address _to, uint _value) private returns (bool success) {
-    balances[_from] = safeSub(balances[_from], _value);
-    balances[_to] = safeAdd(balances[_to], _value);
+    balances[_from] = balances[_from].sub(_value);
+    balances[_to] = balances[_to].add(_value);
 
     Transfer(_from, _to, _value);
 

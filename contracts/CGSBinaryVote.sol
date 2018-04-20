@@ -23,9 +23,11 @@ import './interfaces/ERC20.sol';
 
 /// @title CGSBinaryVote contract
 /// @author Icofunding
-contract CGSBinaryVote is SafeMath {
+contract CGSBinaryVote {
   uint constant TIME_TO_VOTE = 7 days;
   uint constant TIME_TO_REVEAL = 3 days;
+
+  using SafeMath for uint;
 
   /*
    * - SecretVote: Users deposit their CGS tokens and a hash of their vote.
@@ -129,7 +131,7 @@ contract CGSBinaryVote is SafeMath {
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
 
-    votes[voteId].totalVotes += numTokens;
+    votes[voteId].totalVotes = votes[voteId].totalVotes.add(numTokens);
 
     ev_Vote(voteId, msg.sender, numTokens);
 
@@ -161,10 +163,10 @@ contract CGSBinaryVote is SafeMath {
 
     if(revealedvote) {
       // Vote true
-      votes[voteId].votesYes += votes[voteId].userDeposits[msg.sender];
+      votes[voteId].votesYes = votes[voteId].votesYes.add(votes[voteId].userDeposits[msg.sender]);
     } else {
       // Vote false
-      votes[voteId].votesNo += votes[voteId].userDeposits[msg.sender];
+      votes[voteId].votesNo = votes[voteId].votesNo.add(votes[voteId].userDeposits[msg.sender]);
     }
 
     ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
@@ -236,18 +238,23 @@ contract CGSBinaryVote is SafeMath {
       uint bonus;
       if(voteResult) {
         // If the result is positive
-        bonus = ((votes[voteId].totalVotes - votes[voteId].votesYes) * 20) / 100;
+        // bonus = ((votes[voteId].totalVotes - votes[voteId].votesYes) * 20) / 100;
+        bonus = votes[voteId].totalVotes.sub(votes[voteId].votesYes).mul(20).div(100);
 
-        numTokens = deposited + bonus*deposited/votes[voteId].votesYes;
+        // numTokens = deposited + bonus*deposited/votes[voteId].votesYes;
+        numTokens = deposited.add( bonus.mul(deposited).div(votes[voteId].votesYes) );
       } else {
         // If the result is negative
-        bonus = ((votes[voteId].totalVotes - votes[voteId].votesNo) * 20) / 100;
+        // bonus = ((votes[voteId].totalVotes - votes[voteId].votesNo) * 20) / 100;
+        bonus = votes[voteId].totalVotes.sub(votes[voteId].votesNo).mul(20).div(100);
 
-        numTokens = deposited + bonus*deposited/votes[voteId].votesNo;
+        // numTokens = deposited + bonus*deposited/votes[voteId].votesNo;
+        numTokens = deposited.add( bonus.mul(deposited).div(votes[voteId].votesNo) );
       }
     } else {
-      // Losers and people that not revealed their vote lose 20% of their tokens
-      numTokens = deposited - (deposited*20)/100;
+      // Losers and people that did not revealed their vote lose 20% of their tokens
+      // numTokens = deposited - (deposited*20)/100;
+      numTokens = deposited.sub( deposited.mul(20).div(100) );
     }
 
     return numTokens;
@@ -297,6 +304,20 @@ contract CGSBinaryVote is SafeMath {
   function getUserDeposit(uint voteId, address who) public view returns(uint) {
 
     return votes[voteId].userDeposits[who];
+  }
+
+  /// @notice Checks if the vote can be revealed with the given data
+  /// @dev Checks if the vote can be revealed with the given data
+  /// @param voteId ID of the vote
+  /// @param user Voter
+  /// @param salt random salt used to vote
+  /// @return what the user voted
+  function canRevealVote(uint voteId, address user, bytes32 salt)
+    public
+    view
+    returns(bool)
+  {
+    return checkReveal(voteId, user, true, salt) || checkReveal(voteId, user, false, salt);
   }
 
   /// @notice Computes the hash of the given data to calculate the revealed vote

@@ -24,9 +24,11 @@ import './Vault.sol';
 
 /// @title CGS contract
 /// @author Icofunding
-contract CGS is SafeMath {
+contract CGS {
   uint constant TIME_BETWEEN_CLAIMS = 100 days;
   uint constant TIME_FOR_REDEEM = 10 days;
+
+  using SafeMath for uint;
 
   /*
    * - ClaimPeriod: Users can deposit and withdraw tokens. If more than claimPrice tokens are
@@ -160,8 +162,8 @@ contract CGS is SafeMath {
     assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
 
     // Update balances
-    userDeposits[msg.sender] += numTokens;
-    totalDeposit += numTokens;
+    userDeposits[msg.sender] = userDeposits[msg.sender].add(numTokens);
+    totalDeposit = totalDeposit.add(numTokens);
 
     claimDeposited[msg.sender] = currentClaim;
 
@@ -186,14 +188,14 @@ contract CGS is SafeMath {
   /// @param numTokens Number of tokens
   function withdrawTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // Enough tokens deposited
-    require(userDeposits[msg.sender] >= numTokens);
+    require(userDeposits[msg.sender] >= numTokens); // Redundant with SafeMath
     // The tokens are doposited for the current claim.
     // If the tokens are from previous claims, the user should cashOut instead
     require(claimDeposited[msg.sender] == currentClaim);
 
     // Update balances
-    userDeposits[msg.sender] -= numTokens;
-    totalDeposit -= numTokens;
+    userDeposits[msg.sender] = userDeposits[msg.sender].sub(numTokens);
+    totalDeposit = totalDeposit.sub(numTokens);
 
     // No tokens in this (or any) claim
     if(userDeposits[msg.sender] == 0)
@@ -219,7 +221,7 @@ contract CGS is SafeMath {
       userDeposits[msg.sender] = 0;
       claimDeposited[msg.sender] = 0;
 
-      // Make transfers
+      // Make transfers //
 
       // To user (99-100%)
       assert(ERC20(tokenAddress).transfer(msg.sender, tokensToUser));
@@ -246,9 +248,9 @@ contract CGS is SafeMath {
     // Send Tokens to the Redeem Vesting
     // Redeem vesting is needed to avoid the icoLauncher using Redeem to drain all the ether.
     assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
-    tokensInVesting += numTokens;
-    // Send ether to ICO holder
-    weiRedeem += weiToSend;
+    tokensInVesting = tokensInVesting.add(numTokens);
+    // Send ether to ICO token holder
+    weiRedeem = weiRedeem.add(weiToSend);
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
     ev_Redeem(msg.sender, numTokens, weiToSend);
@@ -280,7 +282,7 @@ contract CGS is SafeMath {
   function withdrawWei() public onlyIcoLauncher wakeVoter timedTransitions {
     uint weiToWithdraw = calculateWeiToWithdraw();
 
-    weiWithdrawToDate += weiToWithdraw;
+    weiWithdrawToDate = weiWithdrawToDate.add(weiToWithdraw);
 
     Vault(vaultAddress).withdraw(icoLauncherWallet, weiToWithdraw);
   }
@@ -351,8 +353,8 @@ contract CGS is SafeMath {
         // If the claim did not succeed
         if(claimResults[claim]) {
           // 1% penalization goes to the ICO launcher
-          tokensToIcoLauncher = tokensToUser/100;
-          tokensToUser -= tokensToIcoLauncher;
+          tokensToIcoLauncher = tokensToUser.div(100);
+          tokensToUser = tokensToUser.sub(tokensToIcoLauncher);
         }
       }
     }
@@ -370,7 +372,8 @@ contract CGS is SafeMath {
     if(getStage() == Stages.Redeem) {
       uint weiToWithdraw = calculateWeiToWithdraw();
 
-      etherPerTokens = (numTokens * (weiBalanceAtlastClaim - weiToWithdraw)) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+      // etherPerTokens = ( numTokens * (weiBalanceAtlastClaim - weiToWithdraw) ) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
+      etherPerTokens = (  numTokens.mul( weiBalanceAtlastClaim.sub(weiToWithdraw) )  ).div( ERC20(tokenAddress).totalSupply().sub(tokensInVestingAtLastClaim) );
     }
 
     return etherPerTokens;
@@ -416,7 +419,8 @@ contract CGS is SafeMath {
   /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
   function calculateWeiToWithdrawAt(uint date) internal view returns(uint) {
 
-    return (date - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
+    // return (date - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
+    return date.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate).sub(weiRedeem);
   }
 
   /// @notice Changes the stage to _stage
