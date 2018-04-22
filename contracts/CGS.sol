@@ -58,6 +58,7 @@ contract CGS {
   uint public tokensInVestingAtLastClaim; // Number of tokens in Redeem Vesting before the current claim
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
   uint public weiRedeem; // Ether withdraw by ICO token holders during the Redeem process
+  uint public weiToWithdrawAtLastClaim; // Wei available for the ICO launcher when the last claim was open.
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -173,6 +174,7 @@ contract CGS {
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
       tokensInVestingAtLastClaim = tokensInVesting;
+      weiToWithdrawAtLastClaim = calculateWeiToWithdraw();
       setStage(Stages.ClaimOpen);
 
       ev_OpenClaim(voteIds[currentClaim]);
@@ -387,12 +389,10 @@ contract CGS {
 
     // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
     if(getStage() == Stages.ClaimOpen || getStage() == Stages.Redeem) {
-      weiToWithdraw = calculateWeiToWithdrawAt(lastClaim);
-
-      if(weiToWithdraw > weiBalanceAtlastClaim)
-        weiToWithdraw = weiBalanceAtlastClaim;
+      weiToWithdraw = weiToWithdrawAtLastClaim;
     } else {
-      weiToWithdraw = calculateWeiToWithdrawAt(now);
+      //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
+      weiToWithdraw = now.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate).sub(weiRedeem);
 
       if(weiToWithdraw > Vault(vaultAddress).etherBalance())
         weiToWithdraw = Vault(vaultAddress).etherBalance();
@@ -412,15 +412,6 @@ contract CGS {
       active = true;
 
     return active;
-  }
-
-  /// @notice Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @dev Returns the amount of Wei available for the ICO launcher to withdraw at a specified date
-  /// @return the amount of Wei available for the ICO launcher to withdraw at a specified date
-  function calculateWeiToWithdrawAt(uint date) internal view returns(uint) {
-
-    // return (date - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
-    return date.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate).sub(weiRedeem);
   }
 
   /// @notice Changes the stage to _stage

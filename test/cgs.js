@@ -313,19 +313,72 @@ contract('CGS', function(accounts) {
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
     FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
+    // To check
+    let percentOfTokens = numTokensToRedeem/icoInitialSupply;
+    let remainingEther = weiToDeposit - (await CGSContract.calculateWeiToWithdraw.call()).toNumber();
+    let previousBalance = web3.eth.getBalance(tokenHolder1).toNumber();
+
     // Approve and transferFrom to redeem tokens
     await TestTokenContract.approve(CGSContract.address, numTokensToRedeem, {from: tokenHolder1});
     await CGSContract.redeem(numTokensToRedeem, {from: tokenHolder1});
 
     // To make sure that the balances are updated correctly
+    let weiReceived = web3.eth.getBalance(tokenHolder1).toNumber() - previousBalance;
     let VaultContract = Vault.at(await CGSContract.vaultAddress.call());
-    let weiToWithdraw = 0;
-    // TODO: Test the amount of ether sent to the token holder from the Vault. The formula have to change.
-    //assert.equal(weiToDeposit - weiToWithdraw, (await web3.eth.getBalance(VaultAddress)).toNumber(), "incorrect value");
-    // TODO: check weiRedeem
+
+    // The % of ether corresponds with the % of tokens
+    assert.approximately(percentOfTokens, weiReceived/remainingEther, 0.01, "incorrect percent of wei");
+    // Correct amount of ether Redeemed
+    assert.equal(percentOfTokens*remainingEther, (await CGSContract.weiRedeem.call()).toNumber(), "incorrect value");
     // The tokens have move from ICO holder to ICO launcher
     assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
     assert.equal(numTokensToRedeem, (await CGSContract.tokensInVesting.call()).toNumber(), "incorrect value");
+  });
+
+  it("Redeem tokens for ether multiple times", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let numTokensToRedeem = 100;
+    let numTokensToRedeem2 = 50;
+    let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("2", "Ether");
+    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, timestamp);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
+
+    // Approve and transferFrom to move tokens to the contract
+    await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // Simulate the vote
+    let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
+    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+
+    // To check
+    let percentOfTokens = numTokensToRedeem2/icoInitialSupply;
+
+    // Approve and transferFrom to redeem tokens
+    await TestTokenContract.approve(CGSContract.address, numTokensToRedeem, {from: tokenHolder1});
+    await CGSContract.redeem(numTokensToRedeem, {from: tokenHolder1});
+
+    // To check
+    let remainingEther = weiToDeposit - (await CGSContract.calculateWeiToWithdraw.call()).toNumber();
+    let previousBalance = web3.eth.getBalance(tokenHolder1).toNumber();
+
+    // Approve and transferFrom to redeem tokens
+    await TestTokenContract.approve(CGSContract.address, numTokensToRedeem2, {from: tokenHolder1});
+    await CGSContract.redeem(numTokensToRedeem2, {from: tokenHolder1});
+
+    // To make sure that the balances are updated correctly
+    let weiReceived = web3.eth.getBalance(tokenHolder1).toNumber() - previousBalance;
+
+    // The % of ether corresponds with the % of tokens
+    assert.approximately(percentOfTokens, weiReceived/remainingEther, 0.01, "incorrect percent of wei");
   });
 
   it("Redeem 0 tokens");
