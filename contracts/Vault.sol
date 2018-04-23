@@ -21,11 +21,13 @@ import './util/SafeMath.sol';
 
 /// @title Vault contract
 /// @author Icofunding
-contract Vault is SafeMath {
+contract Vault {
   uint public totalCollected; // Wei
   uint public etherBalance; // Wei
 
   address public cgsAddress;
+
+  using SafeMath for uint;
 
   event ev_Deposit(uint amount);
   event ev_Withdraw(address to, uint amount);
@@ -43,8 +45,8 @@ contract Vault is SafeMath {
   /// @notice Deposits ether
   /// @dev Deposits ether
   function deposit() public payable returns(bool) {
-    totalCollected = safeAdd(totalCollected, msg.value);
-    etherBalance = safeAdd(etherBalance, msg.value);
+    totalCollected = totalCollected.add(msg.value);
+    etherBalance = etherBalance.add(msg.value);
 
     ev_Deposit(msg.value);
 
@@ -56,7 +58,7 @@ contract Vault is SafeMath {
   /// @param to Account where the funds are going to be sent
   /// @param amount Amount of Wei to withdraw
   function withdraw(address to, uint amount) public onlyCGS returns(bool) {
-    etherBalance = safeSub(etherBalance, amount);
+    etherBalance = etherBalance.sub(amount);
     to.transfer(amount);
 
     ev_Withdraw(to, amount);

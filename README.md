@@ -177,6 +177,23 @@ contract.methods.getRevealedVote(voteId, userAddress).call();
 // true
 ```
 
+#### canRevealVote **Constant**
+
+Checks if the vote can be revealed with the given data
+
+**Params:**
+* voteId (uint): ID of the vote
+* user (address): User address
+* salt (bytes32): random salt used to vote. sha3(salt)
+
+```javascript
+let voteId = 0;
+let userAddress = "0x12345...";
+let salt = "0xaaabbbccc...";
+contract.methods.canRevealVote(voteId, userAddress, salt).call();
+// true
+```
+
 #### calculateRevealedVote **Constant**
 
 Calculates the revealed vote of the user without reading the blockchain.
@@ -485,14 +502,14 @@ contract.methods.tokensInVesting().call();
 // 554570000000000000000
 ```
 
-#### etherRedeem **Constant**
+#### weiRedeem **Constant**
 
 Returns the ether withdraw by ICO token holders during the Redeem process
 
 **Params:**
 
 ```javascript
-contract.methods.etherRedeem().call();
+contract.methods.weiRedeem().call();
 // 5560000000000000000
 ```
 
