@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
 import './interfaces/ERC20.sol';
-import './CGSBinaryVote.sol';
+import './interfaces/CGSBinaryVoteInterface.sol';
 import './Vault.sol';
 
 /*
@@ -93,7 +93,7 @@ contract CGS {
   }
 
   modifier wakeVoter {
-    CGSBinaryVote(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
+    CGSBinaryVoteInterface(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
 
     _;
   }
@@ -137,7 +137,7 @@ contract CGS {
     uint _startDate
   ) public {
     require(_weiPerSecond > 0);
-    require(CGSBinaryVote(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
+    require(CGSBinaryVoteInterface(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
 
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
@@ -170,7 +170,7 @@ contract CGS {
 
     // Open a claim?
     if(totalDeposit >= claimPrice) {
-      voteIds[currentClaim] = CGSBinaryVote(cgsVoteAddress).startVote(this);
+      voteIds[currentClaim] = CGSBinaryVoteInterface(cgsVoteAddress).startVote(this);
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
       tokensInVestingAtLastClaim = tokensInVesting;
@@ -306,7 +306,7 @@ contract CGS {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
-    if(s == Stages.Redeem && (lastClaim + CGSBinaryVote(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
+    if(s == Stages.Redeem && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
       s = Stages.ClaimEnded;
 
     if(s == Stages.ClaimEnded && (lastClaim + TIME_BETWEEN_CLAIMS <= now))
