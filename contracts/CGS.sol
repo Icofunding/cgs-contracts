@@ -1,9 +1,11 @@
 pragma solidity ^0.4.18;
 
 import './util/SafeMath.sol';
+import './util/Owned.sol';
 import './interfaces/ERC20.sol';
 import './interfaces/CGSBinaryVoteInterface.sol';
 import './Vault.sol';
+
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -24,7 +26,7 @@ import './Vault.sol';
 
 /// @title CGS contract
 /// @author Icofunding
-contract CGS {
+contract CGS is Owned {
   uint constant TIME_BETWEEN_CLAIMS = 100 days;
   uint constant TIME_FOR_REDEEM = 10 days;
 
@@ -93,8 +95,9 @@ contract CGS {
   }
 
   modifier wakeVoter {
-    CGSBinaryVoteInterface(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
-
+    if(isSet(cgsVoteAddress)) {
+      CGSBinaryVoteInterface(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
+    }
     _;
   }
 
@@ -126,34 +129,40 @@ contract CGS {
   /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
-  /// @param _cgsVoteAddress Address of the CGS Vote smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function CGS(
     uint _weiPerSecond,
     uint _claimPrice,
     address _icoLauncher,
     address _tokenAddress,
-    address _cgsVoteAddress,
     uint _startDate
   ) public {
     require(_weiPerSecond > 0);
-    require(CGSBinaryVoteInterface(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
 
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
-    cgsVoteAddress = _cgsVoteAddress;
     vaultAddress = new Vault(this);
     startDate = _startDate; // Very careful with this!!!!
     currentClaim = 1;
+  }
+
+  /// @notice Sets the value of cgsVoteAddress
+  /// @dev Sets the value of cgsVoteAddress
+  /// @param _cgsVoteAddress Address of the CGS Vote smart contract
+  function setCGSVoteAddress(address _cgsVoteAddress) public onlyOwner {
+    require(!isActive());
+    require(CGSBinaryVoteInterface(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
+
+    cgsVoteAddress = _cgsVoteAddress;
   }
 
   /// @notice Deposits tokens. Should be executed after Token.Approve(...)
   /// @dev Deposits tokens. Should be executed after Token.Approve(...)
   /// @param numTokens Number of tokens
   function depositTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
-    // The user cannot deposit tokens if there is no ether to claim
+    // The user cannot deposit tokens if there is no ether to claim or the CGSVote is not set
     require(isActive());
     // The user has no tokens deposited in previous claims
     require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
@@ -408,7 +417,7 @@ contract CGS {
   function isActive() public view returns(bool) {
     bool active = false;
 
-    if(now >= startDate && calculateWeiToWithdraw() < Vault(vaultAddress).etherBalance())
+    if(now >= startDate && calculateWeiToWithdraw() < Vault(vaultAddress).etherBalance() && isSet(cgsVoteAddress))
       active = true;
 
     return active;
@@ -421,6 +430,14 @@ contract CGS {
     stage = _stage;
 
     newStageHandler(stage);
+  }
+
+  /// @notice Checks if the given address is set or with default value
+  /// @dev Checks if the given address is set or with default value
+  /// @param addr Address to check
+  /// @return true if the address is set
+  function isSet(address addr) private view returns(bool) {
+    return addr != address(0);
   }
 
   /// @notice Handles the change to a new state

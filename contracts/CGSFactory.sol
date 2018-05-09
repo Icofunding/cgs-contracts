@@ -50,7 +50,8 @@ contract CGSFactory {
     public
     returns (address cgs)
   {
-    cgs = new CGS(_weiPerSecond, _claimPrice, _icoLauncher, _tokenAddress, cgsVoteAddress, _startDate);
+    cgs = new CGS(_weiPerSecond, _claimPrice, _icoLauncher, _tokenAddress, _startDate);
+    CGS(cgs).setCGSVoteAddress(cgsVoteAddress);
     register(cgs);
   }
 
