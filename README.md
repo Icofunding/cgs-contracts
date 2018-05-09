@@ -59,4 +59,4 @@ Truffle migrate
 The Vault is created from the CGS smart contract. Its address can be accessed using the public method `CGS.vaultAddress.call()`
 
 ## Documentation
-(Check the Wiki)[https://gitlab.com/icofunding-com/cgs-contracts/wikis/home]
+[Check the Wiki](https://gitlab.com/icofunding-com/cgs-contracts/wikis/home)
