@@ -373,7 +373,7 @@ contract CGS is Owned {
     return (tokensToUser, tokensToIcoLauncher);
   }
 
-  /// @notice Calculates the amount of ether send to the token holder in exchange of n tokens.
+  /// @notice Calculates the amount of ether to send to the token holder in exchange of n tokens.
   /// @dev Calculates the amount of ether send to the token holder in exchange of n tokens
   /// @param numTokens Number of tokens to exchange
   /// @return the amount of Ether to be sent in exchange of the tokens
@@ -401,7 +401,7 @@ contract CGS is Owned {
       weiToWithdraw = weiToWithdrawAtLastClaim;
     } else {
       //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
-      weiToWithdraw = now.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate).sub(weiRedeem);
+      weiToWithdraw = now.sub(startDate).mul(weiPerSecond) - weiWithdrawToDate - weiRedeem;
 
       if(weiToWithdraw > Vault(vaultAddress).etherBalance())
         weiToWithdraw = Vault(vaultAddress).etherBalance();
