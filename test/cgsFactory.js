@@ -39,8 +39,6 @@ contract('CGS Factory', function(accounts) {
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, "TEST", "TST", 2);
 
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, FakeCGSBinaryVoteContract.address, NOW);
-
     // Check the event
     let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, NOW, {from: icoLauncher})).logs[0];
     assert.equal(event.event, 'ev_NewCGS', "incorrect event name");
