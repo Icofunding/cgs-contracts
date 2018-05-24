@@ -61,6 +61,7 @@ contract CGS is Owned {
   uint public tokensInVesting; // Number of tokens in Redeem Vesting
   uint public weiRedeem; // Ether withdraw by ICO token holders during the Redeem process
   uint public weiToWithdrawAtLastClaim; // Wei available for the ICO launcher when the last claim was open.
+  bool public withdrawnWhileOnClaim; // To check if the ICO launcher has withdraw ether during that claim period
 
   Stages public stage; // Current stage. Returns uint.
 
@@ -183,6 +184,7 @@ contract CGS is Owned {
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
       tokensInVestingAtLastClaim = tokensInVesting;
+      withdrawnWhileOnClaim = false;
       weiToWithdrawAtLastClaim = calculateWeiToWithdraw();
       setStage(Stages.ClaimOpen);
 
@@ -295,6 +297,10 @@ contract CGS is Owned {
 
     weiWithdrawToDate = weiWithdrawToDate.add(weiToWithdraw);
 
+    if(getStage() == Stages.ClaimOpen || getStage() == Stages.Redeem) {
+      withdrawnWhileOnClaim = true;
+    }
+
     Vault(vaultAddress).withdraw(icoLauncherWallet, weiToWithdraw);
   }
 
@@ -398,7 +404,10 @@ contract CGS is Owned {
 
     // If there is an ongoing claim, only the ether available until the moment the claim was open can be withdraw
     if(getStage() == Stages.ClaimOpen || getStage() == Stages.Redeem) {
-      weiToWithdraw = weiToWithdrawAtLastClaim;
+      if(withdrawnWhileOnClaim)
+        weiToWithdraw = 0;
+      else
+        weiToWithdraw = weiToWithdrawAtLastClaim;
     } else {
       //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
       weiToWithdraw = now.sub(startDate).mul(weiPerSecond) - weiWithdrawToDate - weiRedeem;
