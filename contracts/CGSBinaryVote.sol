@@ -263,9 +263,9 @@ contract CGSBinaryVote {
   /// @notice Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
   /// @dev Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
   /// @param voteId ID of the vote
-  function finalizeVote(uint voteId) public timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
+  function finalizeVote(uint voteId) public timedTransitions(voteId) {
     // This is executed only once per project.
-    if(!votes[voteId].finalized) {
+    if(getStage(voteId) == Stages.Settlement && !votes[voteId].finalized) {
       votes[voteId].finalized = true;
 
       if(votes[voteId].votesYes > votes[voteId].votesNo)
