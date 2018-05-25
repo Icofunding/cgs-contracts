@@ -411,7 +411,7 @@ contract CGSBinaryVote {
   /// @dev Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
   /// @param voteId ID of the vote
   function finalizeVote(uint voteId) private timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
-      if(votes[voteId].votesYes > votes[voteId].votesNo)
+      if(votes[voteId].votesYes >= votes[voteId].votesNo)
         BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, true);
       else
         BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, false);
