@@ -136,8 +136,7 @@ contract('CGSBinaryVote', function(accounts) {
     assert.equal(0, voteData[2].toNumber(), "incorrect true numVotes");
     assert.equal(0, voteData[3].toNumber(), "incorrect false numVotes");
     assert.equal(owner, voteData[4], "incorrect callback");
-    assert.isFalse(voteData[5], "incorrect value");
-    assert.equal(numTokensToVote, voteData[6].toNumber(), "incorrect number of total votes");
+    assert.equal(numTokensToVote, voteData[5].toNumber(), "incorrect number of total votes");
 
     assert.equal(numTokensToVote, (await CGSBinaryVoteContract.getUserDeposit.call(voteId, tokenHolder1)).toNumber(), "incorrect amount");
     assert.isFalse(await CGSBinaryVoteContract.hasUserRevealed.call(voteId, tokenHolder1), "incorrect value");
@@ -260,13 +259,13 @@ contract('CGSBinaryVote', function(accounts) {
     let voteData = await CGSBinaryVoteContract.votes.call(0);
     assert.equal(numTokensToVote + numTokensToVote4, voteData[2].toNumber(), "incorrect true numVotes");
     assert.equal(numTokensToVote2, voteData[3].toNumber(), "incorrect false numVotes");
-    assert.equal(numTokensToVote + numTokensToVote2 + numTokensToVote3 + numTokensToVote4, voteData[6].toNumber(), "incorrect number of total votes");
+    assert.equal(numTokensToVote + numTokensToVote2 + numTokensToVote3 + numTokensToVote4, voteData[5].toNumber(), "incorrect number of total votes");
 
     // Apply penalizations (2 & 3) and bonuses (1 & 4)
-    let tokensToVoter1 = numTokensToVote + parseInt(   parseInt(  ( (voteData[6].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote  ) / voteData[2].toNumber()   );
+    let tokensToVoter1 = numTokensToVote + parseInt(   parseInt(  ( (voteData[5].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote  ) / voteData[2].toNumber()   );
     let tokensToVoter2 = numTokensToVote2 - numTokensToVote2*0.2;
     let tokensToVoter3 = numTokensToVote3 - numTokensToVote3*0.2;
-    let tokensToVoter4 = numTokensToVote4 + parseInt(   parseInt(  ( (voteData[6].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote4  ) / voteData[2].toNumber()   );
+    let tokensToVoter4 = numTokensToVote4 + parseInt(   parseInt(  ( (voteData[5].toNumber() - voteData[2].toNumber()) * 0.2 ) * numTokensToVote4  ) / voteData[2].toNumber()   );
 
     assert.equal(tokensToVoter1, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder1)).toNumber(), "incorrect number of tokens to withdraw");
     assert.equal(tokensToVoter2, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder2)).toNumber(), "incorrect number of tokens to withdraw");
@@ -274,7 +273,7 @@ contract('CGSBinaryVote', function(accounts) {
     assert.equal(tokensToVoter4, (await CGSBinaryVoteContract.tokensToWithdraw.call(voteId, tokenHolder4)).toNumber(), "incorrect number of tokens to withdraw");
 
     // The number of tokens remains the same
-    assert.approximately(tokensToVoter1 + tokensToVoter2 + tokensToVoter3 + tokensToVoter4, voteData[6].toNumber(), 2, "incorrect value");
+    assert.approximately(tokensToVoter1 + tokensToVoter2 + tokensToVoter3 + tokensToVoter4, voteData[5].toNumber(), 2, "incorrect value");
   });
 
 });
