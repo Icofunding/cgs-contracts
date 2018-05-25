@@ -56,7 +56,7 @@ contract CGSBinaryVoteInterface {
 
   function tokensToWithdraw(uint voteId, address who) public view returns(uint);
 
-  function finalizeVote(uint voteId) public;
+  function wake(uint voteId) public;
 
   function hasUserRevealed(uint voteId, address who) public view returns(bool);
   function getRevealedVote(uint voteId, address who) public view returns(bool);

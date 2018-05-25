@@ -97,7 +97,7 @@ contract CGS is Owned {
 
   modifier wakeVoter {
     if(isSet(cgsVoteAddress)) {
-      CGSBinaryVoteInterface(cgsVoteAddress).finalizeVote(voteIds[currentClaim]);
+      CGSBinaryVoteInterface(cgsVoteAddress).wake(voteIds[currentClaim]);
     }
     _;
   }
