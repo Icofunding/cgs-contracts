@@ -49,7 +49,6 @@ contract CGSBinaryVote {
     uint votesYes; // Votes that the project is doing a proper use of the funds. Updated during Reveal stage
     uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
     address callback; // The address to call when the vote ends
-    bool finalized; // If the result of the project has already been informed to the callback
     uint totalVotes; // Total number of votes (at the moment of voting, no matter if revealed or not)
     mapping (address => bytes32) secretVotes; // Hashes of votes
     mapping (address => bool) revealedVotes; // Votes in plain text
@@ -96,7 +95,7 @@ contract CGSBinaryVote {
   /// @dev Starts a vote
   /// @return the vote ID
   function startVote(address _callback) public returns(uint) {
-    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback, false, 0);
+    Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback, 0);
 
     votes.push(newVote);
     numVotes++;
@@ -260,19 +259,10 @@ contract CGSBinaryVote {
     return numTokens;
   }
 
-  /// @notice Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
-  /// @dev Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
+  /// @notice Synchronizes the stage of the contract
+  /// @dev Synchronizes the stage of the contract
   /// @param voteId ID of the vote
-  function finalizeVote(uint voteId) public timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
-    // This is executed only once per project.
-    if(!votes[voteId].finalized) {
-      votes[voteId].finalized = true;
-
-      if(votes[voteId].votesYes > votes[voteId].votesNo)
-        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, true);
-      else
-        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, false);
-    }
+  function wake(uint voteId) public timedTransitions(voteId) {
   }
 
   /// @notice Returns if the user has revealed his vote
@@ -412,8 +402,18 @@ contract CGSBinaryVote {
   function newStageHandler(uint voteId, Stages _stage) private {
     // Executed only once
     if(_stage == Stages.Settlement)
-      finalizeVote(voteId);
+      finalizeVote(voteId); // It is executed only once
 
     ev_NewStage(voteId, _stage);
+  }
+
+  /// @notice Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
+  /// @dev Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
+  /// @param voteId ID of the vote
+  function finalizeVote(uint voteId) private timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
+      if(votes[voteId].votesYes > votes[voteId].votesNo)
+        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, true);
+      else
+        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, false);
   }
 }

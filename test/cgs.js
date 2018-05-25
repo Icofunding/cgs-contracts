@@ -630,5 +630,80 @@ contract('CGS', function(accounts) {
   it("Withdraw ether by non-ICO launcher should fail");
   it("Withdraw ether with a claim open should only withdraw part of the ether");
 
+  it("Withdraw ether by the ICO launcher with a claim open", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("500000", "Wei");
+    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
+
+    increaseTime(ONE_DAY);
+
+    // Open a claim
+    await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // This day shouldn't be taken into account
+    increaseTime(ONE_DAY);
+    mineBlock();
+
+    let secondsWithFunding = weiToDeposit/weiPerSecond;
+    let percerntOfTime = ONE_DAY/secondsWithFunding;
+
+    let prevBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    await CGSContract.withdrawWei({from: icoLauncher});
+    let newBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let etherWithdrawn = prevBalance - newBalance;
+
+    // % of time corresponds to % of wei withdrawn
+    assert.approximately(percerntOfTime, etherWithdrawn/weiToDeposit, 0.0001, "incorrect wei value");
+  });
+
+  it("Withdraw ether by the ICO launcher with a claim open multiple times", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToDeposit = 500;
+    let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("2000000", "Wei");
+    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
+
+    // Simulate ICO deposit
+    let VaultAddress = await CGSContract.vaultAddress.call();
+    await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
+
+    increaseTime(ONE_DAY);
+
+    // Open a claim
+    await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
+    await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
+
+    // This day shouldn't be taken into account
+    increaseTime(ONE_DAY);
+    mineBlock();
+
+    let secondsWithFunding = weiToDeposit/weiPerSecond;
+    let percerntOfTime = ONE_DAY/secondsWithFunding;
+
+    let prevBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    await CGSContract.withdrawWei({from: icoLauncher});
+    let newBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    await CGSContract.withdrawWei({from: icoLauncher});
+    let newBalance2 = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+
+    // % of time corresponds to % of wei withdrawn
+    assert.equal(newBalance, newBalance2, "incorrect wei value");
+  });
+
   // Also test modifiers to change stage
 });
