@@ -64,7 +64,8 @@ contract CGSBinaryVoteInterface {
 
   function canRevealVote(uint voteId, address user, bytes32 salt) public view returns(bool);
   function calculateRevealedVote(uint voteId, address user, bytes32 salt) public view returns(bool);
-
+  function getVoteResult(uint voteId) public view returns(bool);
+  
   function getVotingProcessDuration() public pure returns(uint);
   function getVotePhaseDuration() public pure returns(uint);
   function getRevealPhaseDuration() public pure returns(uint);

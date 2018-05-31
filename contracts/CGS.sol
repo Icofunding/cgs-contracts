@@ -321,6 +321,13 @@ contract CGS is Owned {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
+    if(s == Stages.ClaimOpen && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() <= now)) {
+      if(CGSBinaryVoteInterface(cgsVoteAddress).getVoteResult(voteIds[currentClaim]))
+        s = Stages.ClaimEnded;
+      else
+        s = Stages.Redeem;
+    }
+
     if(s == Stages.Redeem && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
       s = Stages.ClaimEnded;
 
@@ -445,7 +452,7 @@ contract CGS is Owned {
   /// @dev Checks if the given address is set or with default value
   /// @param addr Address to check
   /// @return true if the address is set
-  function isSet(address addr) private view returns(bool) {
+  function isSet(address addr) private pure returns(bool) {
     return addr != address(0);
   }
 
