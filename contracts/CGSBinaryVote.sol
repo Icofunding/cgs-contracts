@@ -336,6 +336,18 @@ contract CGSBinaryVote {
     return revealedvote;
   }
 
+  /// @notice Returns the outcome of a vote
+  /// @dev Returns the outcome of a vote
+  /// @param voteId ID of the vote
+  /// @return the outcome of a vote
+  function getVoteResult(uint voteId)
+    public
+    view
+    returns(bool)
+  {
+    return (votes[voteId].votesYes >= votes[voteId].votesNo);
+  }
+
   /// @notice Returns how much time last the voting process
   /// @dev Returns how much time last the voting process
   /// @return how much time last the voting process
@@ -411,9 +423,7 @@ contract CGSBinaryVote {
   /// @dev Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
   /// @param voteId ID of the vote
   function finalizeVote(uint voteId) private timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
-      if(votes[voteId].votesYes >= votes[voteId].votesNo)
-        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, true);
-      else
-        BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, false);
+
+    BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, getVoteResult(voteId));
   }
 }
