@@ -416,8 +416,8 @@ contract CGS is Owned {
       else
         weiToWithdraw = weiToWithdrawAtLastClaim;
     } else {
-      //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
-      weiToWithdraw = now.sub(startDate).mul(weiPerSecond) - weiWithdrawToDate - weiRedeem;
+      //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate;
+      weiToWithdraw = now.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate);
 
       if(weiToWithdraw > Vault(vaultAddress).etherBalance())
         weiToWithdraw = Vault(vaultAddress).etherBalance();
