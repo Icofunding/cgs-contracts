@@ -227,6 +227,7 @@ contract CGS is Owned {
   function cashOut() public wakeVoter timedTransitions returns(bool) {
     uint tokensToUser;
     uint tokensToIcoLauncher;
+    uint ok;
     (tokensToUser, tokensToIcoLauncher) = tokensToCashOut(msg.sender);
 
     if(tokensToUser > 0) {
@@ -244,8 +245,12 @@ contract CGS is Owned {
         assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
       }
 
+      ok = true;
+
       ev_CashOut(currentClaim, msg.sender, tokensToUser, tokensToIcoLauncher);
     }
+
+    return ok;
   }
 
   /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
