@@ -63,9 +63,9 @@ contract CGSBinaryVote {
 
   event ev_NewStage(uint indexed voteId, Stages stage);
   event ev_NewVote(uint indexed voteId, address callback);
-  event ev_Vote(uint indexed voteId, address who, uint amount);
-  event ev_Reveal(uint indexed voteId, address who, uint amount, bool value);
-  event ev_Withdraw(uint indexed voteId, address who, uint amount);
+  event ev_Vote(uint indexed voteId, address indexed who, uint amount);
+  event ev_Reveal(uint indexed voteId, address indexed who, uint amount, bool value);
+  event ev_Withdraw(uint indexed voteId, address indexed who, uint amount);
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);

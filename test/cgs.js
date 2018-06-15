@@ -200,7 +200,6 @@ contract('CGS', function(accounts) {
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
 
-    // Check the event
     await CGSContract.withdrawTokens(numTokensToDeposit, {from: tokenHolder1});
 
     assert.equal(0, (await CGSContract.claimDeposited.call(tokenHolder1)).toNumber(), "incorrect claim number");

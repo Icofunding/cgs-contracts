@@ -81,12 +81,12 @@ contract CGS is Owned {
   address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
-  event ev_NewStage(Stages stage);
-  event ev_DepositTokens(address who, uint amount);
-  event ev_WithdrawTokens(address who, uint amount);
-  event ev_OpenClaim(uint voteId);
-  event ev_CashOut(address who, uint tokensToUser, uint tokensToIcolauncher);
-  event ev_Redeem(address who, uint tokensSent, uint weiReceived);
+  event ev_NewStage(uint indexed claimID, Stages stage);
+  event ev_DepositTokens(uint indexed claimID, address indexed who, uint amount);
+  event ev_WithdrawTokens(uint indexed claimID, address indexed who, uint amount);
+  event ev_OpenClaim(uint indexed claimID, uint voteId);
+  event ev_CashOut(uint indexed claimID, address indexed who, uint tokensToUser, uint tokensToIcolauncher);
+  event ev_Redeem(uint indexed claimID, address indexed who, uint tokensSent, uint weiReceived);
 
 
   modifier atStage(Stages _stage) {
@@ -188,10 +188,10 @@ contract CGS is Owned {
       weiToWithdrawAtLastClaim = calculateWeiToWithdraw();
       setStage(Stages.ClaimOpen);
 
-      ev_OpenClaim(voteIds[currentClaim]);
+      ev_OpenClaim(currentClaim, voteIds[currentClaim]);
     }
 
-    ev_DepositTokens(msg.sender, numTokens);
+    ev_DepositTokens(currentClaim, msg.sender, numTokens);
 
     return true;
   }
@@ -217,7 +217,7 @@ contract CGS is Owned {
     // Send the tokens to the user
     assert(ERC20(tokenAddress).transfer(msg.sender, numTokens));
 
-    ev_WithdrawTokens(msg.sender, numTokens);
+    ev_WithdrawTokens(currentClaim, msg.sender, numTokens);
 
     return true;
   }
@@ -244,7 +244,7 @@ contract CGS is Owned {
         assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
       }
 
-      ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
+      ev_CashOut(currentClaim, msg.sender, tokensToUser, tokensToIcoLauncher);
     }
   }
 
@@ -266,7 +266,7 @@ contract CGS is Owned {
     weiRedeem = weiRedeem.add(weiToSend);
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
-    ev_Redeem(msg.sender, numTokens, weiToSend);
+    ev_Redeem(currentClaim, msg.sender, numTokens, weiToSend);
 
     return true;
   }
@@ -466,6 +466,6 @@ contract CGS is Owned {
       currentClaim++;
     }
 
-    ev_NewStage(_stage);
+    ev_NewStage(currentClaim, _stage);
   }
 }
