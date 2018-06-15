@@ -35,7 +35,7 @@ contract CGSTestToken is ERC20, Owned {
   }
 
   function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
-    var _allowance = allowed[_from][msg.sender];
+    bool _allowance = allowed[_from][msg.sender];
 
     allowed[_from][msg.sender] = _allowance.sub(_value);
 
