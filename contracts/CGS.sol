@@ -227,7 +227,7 @@ contract CGS is Owned {
   function cashOut() public wakeVoter timedTransitions returns(bool) {
     uint tokensToUser;
     uint tokensToIcoLauncher;
-    uint ok;
+    bool ok;
     (tokensToUser, tokensToIcoLauncher) = tokensToCashOut(msg.sender);
 
     if(tokensToUser > 0) {
