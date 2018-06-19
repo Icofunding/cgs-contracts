@@ -81,12 +81,12 @@ contract CGS is Owned {
   address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
-  event ev_NewStage(Stages stage);
-  event ev_DepositTokens(address who, uint amount);
-  event ev_WithdrawTokens(address who, uint amount);
-  event ev_OpenClaim(uint voteId);
-  event ev_CashOut(address who, uint tokensToUser, uint tokensToIcolauncher);
-  event ev_Redeem(address who, uint tokensSent, uint weiReceived);
+  event ev_NewStage(uint indexed claimID, Stages stage);
+  event ev_DepositTokens(uint indexed claimID, address indexed who, uint amount);
+  event ev_WithdrawTokens(uint indexed claimID, address indexed who, uint amount);
+  event ev_OpenClaim(uint indexed claimID, uint voteId);
+  event ev_CashOut(uint indexed claimID, address indexed who, uint tokensToUser, uint tokensToIcolauncher);
+  event ev_Redeem(uint indexed claimID, address indexed who, uint tokensSent, uint weiReceived);
 
 
   modifier atStage(Stages _stage) {
@@ -188,10 +188,10 @@ contract CGS is Owned {
       weiToWithdrawAtLastClaim = calculateWeiToWithdraw();
       setStage(Stages.ClaimOpen);
 
-      ev_OpenClaim(voteIds[currentClaim]);
+      ev_OpenClaim(currentClaim, voteIds[currentClaim]);
     }
 
-    ev_DepositTokens(msg.sender, numTokens);
+    ev_DepositTokens(currentClaim, msg.sender, numTokens);
 
     return true;
   }
@@ -217,7 +217,7 @@ contract CGS is Owned {
     // Send the tokens to the user
     assert(ERC20(tokenAddress).transfer(msg.sender, numTokens));
 
-    ev_WithdrawTokens(msg.sender, numTokens);
+    ev_WithdrawTokens(currentClaim, msg.sender, numTokens);
 
     return true;
   }
@@ -227,6 +227,7 @@ contract CGS is Owned {
   function cashOut() public wakeVoter timedTransitions returns(bool) {
     uint tokensToUser;
     uint tokensToIcoLauncher;
+    bool ok;
     (tokensToUser, tokensToIcoLauncher) = tokensToCashOut(msg.sender);
 
     if(tokensToUser > 0) {
@@ -244,8 +245,12 @@ contract CGS is Owned {
         assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensToIcoLauncher));
       }
 
-      ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
+      ok = true;
+
+      ev_CashOut(currentClaim, msg.sender, tokensToUser, tokensToIcoLauncher);
     }
+
+    return ok;
   }
 
   /// @notice Exchange tokens for ether if a claim success. Executed after approve(...)
@@ -266,7 +271,7 @@ contract CGS is Owned {
     weiRedeem = weiRedeem.add(weiToSend);
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
-    ev_Redeem(msg.sender, numTokens, weiToSend);
+    ev_Redeem(currentClaim, msg.sender, numTokens, weiToSend);
 
     return true;
   }
@@ -320,6 +325,13 @@ contract CGS is Owned {
   /// @return the actual stage of the claim
   function getStage() public view returns(Stages) {
     Stages s = stage;
+
+    if(s == Stages.ClaimOpen && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() <= now)) {
+      if(CGSBinaryVoteInterface(cgsVoteAddress).getVoteResult(voteIds[currentClaim]))
+        s = Stages.ClaimEnded;
+      else
+        s = Stages.Redeem;
+    }
 
     if(s == Stages.Redeem && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
       s = Stages.ClaimEnded;
@@ -409,8 +421,8 @@ contract CGS is Owned {
       else
         weiToWithdraw = weiToWithdrawAtLastClaim;
     } else {
-      //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate - weiRedeem;
-      weiToWithdraw = now.sub(startDate).mul(weiPerSecond) - weiWithdrawToDate - weiRedeem;
+      //weiToWithdraw = (now - startDate) * weiPerSecond - weiWithdrawToDate;
+      weiToWithdraw = now.sub(startDate).mul(weiPerSecond).sub(weiWithdrawToDate);
 
       if(weiToWithdraw > Vault(vaultAddress).etherBalance())
         weiToWithdraw = Vault(vaultAddress).etherBalance();
@@ -445,7 +457,7 @@ contract CGS is Owned {
   /// @dev Checks if the given address is set or with default value
   /// @param addr Address to check
   /// @return true if the address is set
-  function isSet(address addr) private view returns(bool) {
+  function isSet(address addr) private pure returns(bool) {
     return addr != address(0);
   }
 
@@ -459,6 +471,6 @@ contract CGS is Owned {
       currentClaim++;
     }
 
-    ev_NewStage(_stage);
+    ev_NewStage(currentClaim, _stage);
   }
 }

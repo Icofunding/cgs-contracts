@@ -29,8 +29,8 @@ contract Vault {
 
   using SafeMath for uint;
 
-  event ev_Deposit(uint amount);
-  event ev_Withdraw(address to, uint amount);
+  event ev_Deposit(address indexed sender, uint amount);
+  event ev_Withdraw(address indexed to, uint amount);
 
   modifier onlyCGS() {
     require(msg.sender == cgsAddress);
@@ -48,7 +48,7 @@ contract Vault {
     totalCollected = totalCollected.add(msg.value);
     etherBalance = etherBalance.add(msg.value);
 
-    ev_Deposit(msg.value);
+    ev_Deposit(msg.sender, msg.value);
 
     return true;
   }
