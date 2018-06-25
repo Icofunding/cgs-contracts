@@ -215,6 +215,12 @@ contract CGSBinaryVote {
     return stage;
   }
 
+  /// @notice Synchronizes the stage of the contract
+  /// @dev Synchronizes the stage of the contract
+  /// @param voteId ID of the vote
+  function wake(uint voteId) public timedTransitions(voteId) {
+  }
+
   /// @notice Calculates the number of tokens to withdraw after a voting process
   /// @dev Calculates the number of tokens to withdraw after a voting process
   /// @param voteId ID of the vote
@@ -257,12 +263,6 @@ contract CGSBinaryVote {
     }
 
     return numTokens;
-  }
-
-  /// @notice Synchronizes the stage of the contract
-  /// @dev Synchronizes the stage of the contract
-  /// @param voteId ID of the vote
-  function wake(uint voteId) public timedTransitions(voteId) {
   }
 
   /// @notice Returns if the user has revealed his vote
