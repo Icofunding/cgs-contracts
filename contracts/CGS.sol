@@ -280,7 +280,7 @@ contract CGS is Owned {
   /// @dev Receives the result of a claim
   /// @param voteId id of the vote
   /// @param voteResult Outcome of the vote
-  function binaryVoteResult(uint voteId, bool voteResult) public onlyCGSVote {
+  function binaryVoteResult(uint voteId, bool voteResult) public onlyCGSVote returns(bool) {
     // To make sure that the Id of the vote is the one expected
     require(voteIds[currentClaim] == voteId);
 
@@ -293,6 +293,8 @@ contract CGS is Owned {
       // Meh, the CGS voters thin that the funds are not well managed
       setStage(Stages.Redeem);
     }
+
+    return true;
   }
 
   /// @notice Withdraws money by the ICO launcher according to the roadmap

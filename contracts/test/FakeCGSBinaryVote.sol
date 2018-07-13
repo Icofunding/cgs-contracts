@@ -17,7 +17,7 @@ contract FakeCGSBinaryVote {
   }
 
   function finalizeVote(uint voteId, bool result) public {
-    BinaryVoteCallback(callback).binaryVoteResult(voteId, result);
+    assert(BinaryVoteCallback(callback).binaryVoteResult(voteId, result));
   }
 
   function wake(uint voteId) public {
