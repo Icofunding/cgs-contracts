@@ -61,11 +61,11 @@ contract CGSBinaryVote {
 
   address public cgsToken; // Address of the CGS token smart contract
 
-  event ev_NewStage(uint indexed voteId, Stages stage);
+  event ev_NewStage(uint indexed voteId, address callback, Stages stage);
   event ev_NewVote(uint indexed voteId, address callback);
-  event ev_Vote(uint indexed voteId, address who, uint amount);
-  event ev_Reveal(uint indexed voteId, address who, uint amount, bool value);
-  event ev_Withdraw(uint indexed voteId, address who, uint amount);
+  event ev_Vote(uint indexed voteId, address callback, address who, uint amount);
+  event ev_Reveal(uint indexed voteId, address callback, address who, uint amount, bool value);
+  event ev_Withdraw(uint indexed voteId, address callback, address who, uint amount);
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);
@@ -132,7 +132,7 @@ contract CGSBinaryVote {
 
     votes[voteId].totalVotes = votes[voteId].totalVotes.add(numTokens);
 
-    ev_Vote(voteId, msg.sender, numTokens);
+    ev_Vote(voteId, votes[voteId].callback, msg.sender, numTokens);
 
     return true;
   }
@@ -168,7 +168,7 @@ contract CGSBinaryVote {
       votes[voteId].votesNo = votes[voteId].votesNo.add(votes[voteId].userDeposits[msg.sender]);
     }
 
-    ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
+    ev_Reveal(voteId, votes[voteId].callback, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
 
     return true;
   }
@@ -194,7 +194,7 @@ contract CGSBinaryVote {
     // Send tokens to the user
     assert(ERC20(cgsToken).transfer(msg.sender, numTokens));
 
-    ev_Withdraw(voteId, msg.sender, numTokens);
+    ev_Withdraw(voteId, votes[voteId].callback, msg.sender, numTokens);
 
     return true;
   }
@@ -416,7 +416,7 @@ contract CGSBinaryVote {
     if(_stage == Stages.Settlement)
       finalizeVote(voteId); // It is executed only once
 
-    ev_NewStage(voteId, _stage);
+    ev_NewStage(voteId, votes[voteId].callback, _stage);
   }
 
   /// @notice Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.
