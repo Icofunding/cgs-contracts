@@ -81,12 +81,12 @@ contract CGS is Owned {
   address public tokenAddress; // ICO token smart contract address
   address public vaultAddress; // Vault smart contract
 
-  event ev_NewStage(uint indexed claimID, Stages stage);
-  event ev_DepositTokens(uint indexed claimID, address who, uint amount);
-  event ev_WithdrawTokens(uint indexed claimID, address who, uint amount);
-  event ev_OpenClaim(uint indexed claimID, uint voteId);
-  event ev_CashOut(uint indexed claimID, address who, uint tokensToUser, uint tokensToIcolauncher);
-  event ev_Redeem(uint indexed claimID, address who, uint tokensSent, uint weiReceived);
+  event ev_NewStage(uint claimID, Stages stage);
+  event ev_DepositTokens(uint claimID, address who, uint amount);
+  event ev_WithdrawTokens(uint claimID, address who, uint amount);
+  event ev_OpenClaim(uint claimID, uint voteId);
+  event ev_CashOut(uint claimID, address who, uint tokensToUser, uint tokensToIcolauncher);
+  event ev_Redeem(uint claimID, address who, uint tokensSent, uint weiReceived);
 
 
   modifier atStage(Stages _stage) {
