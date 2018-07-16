@@ -86,7 +86,7 @@ contract CGS is Owned {
   event ev_WithdrawTokens(address who, uint amount);
   event ev_OpenClaim(uint voteId);
   event ev_CashOut(address who, uint tokensToUser, uint tokensToIcolauncher);
-  event ev_Redeem(address who, uint tokensSent, uint weiReceived);
+  event ev_Redeem(address who, uint amount, uint weiReceived);
 
 
   modifier atStage(Stages _stage) {
