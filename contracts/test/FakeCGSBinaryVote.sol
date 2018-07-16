@@ -20,7 +20,7 @@ contract FakeCGSBinaryVote {
     assert(BinaryVoteCallback(callback).binaryVoteResult(voteId, result));
   }
 
-  function wake(uint voteId) public {
+  function wake(uint /* voteId */) public {
     isVoteOpen = false;
   }
 

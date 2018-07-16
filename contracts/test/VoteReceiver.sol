@@ -7,7 +7,7 @@ import '../interfaces/BinaryVoteCallback.sol';
  */
 contract VoteReceiver is BinaryVoteCallback {
 
-  function binaryVoteResult(uint voteId, bool result) public returns (bool) {
+  function binaryVoteResult(uint /* voteId */, bool /* result */) public returns (bool) {
 
     return true;
   }
