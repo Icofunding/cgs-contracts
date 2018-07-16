@@ -29,7 +29,7 @@ contract CGSFactory {
 
   event ev_NewCGS(address indexed creator, uint id, address cgs);
 
-  function CGSFactory(address _cgsVoteAddress) public {
+  constructor(address _cgsVoteAddress) public {
     cgsVoteAddress = _cgsVoteAddress;
   }
 

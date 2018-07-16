@@ -38,7 +38,7 @@ contract Vault {
       _;
   }
 
-  function Vault(address _cgsAddress) public {
+  constructor(address _cgsAddress) public {
     cgsAddress = _cgsAddress;
   }
 

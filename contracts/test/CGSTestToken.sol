@@ -17,7 +17,7 @@ contract CGSTestToken is ERC20, Owned {
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  function CGSTestToken(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
+  constructor(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;

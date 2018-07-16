@@ -131,7 +131,7 @@ contract CGS is Owned {
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
-  function CGS(
+  constructor(
     uint _weiPerSecond,
     uint _claimPrice,
     address _icoLauncher,

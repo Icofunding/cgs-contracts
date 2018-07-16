@@ -87,7 +87,7 @@ contract CGSBinaryVote {
   /// @notice Creates a CGSBinaryVote smart contract
   /// @dev Creates a CGSBinaryVote smart contract.
   /// @param _cgsToken Address of the CGS token smart contract
-  function CGSBinaryVote(address _cgsToken) public {
+  constructor(address _cgsToken) public {
     cgsToken = _cgsToken;
   }
 
