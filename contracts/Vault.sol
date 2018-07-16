@@ -48,7 +48,7 @@ contract Vault {
     totalCollected = totalCollected.add(msg.value);
     etherBalance = etherBalance.add(msg.value);
 
-    ev_Deposit(msg.sender, msg.value);
+    emit ev_Deposit(msg.sender, msg.value);
 
     return true;
   }
@@ -61,7 +61,7 @@ contract Vault {
     etherBalance = etherBalance.sub(amount);
     to.transfer(amount);
 
-    ev_Withdraw(to, amount);
+    emit ev_Withdraw(to, amount);
 
     return true;
   }

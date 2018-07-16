@@ -64,7 +64,7 @@ contract TestToken is ERC20, Owned {
   function approve(address _spender, uint _value) public returns (bool success) {
     allowed[msg.sender][_spender] = _value;
 
-    Approval(msg.sender, _spender, _value);
+    emit Approval(msg.sender, _spender, _value);
 
     return true;
   }
@@ -73,7 +73,7 @@ contract TestToken is ERC20, Owned {
     balances[_from] = balances[_from].sub(_value);
     balances[_to] = balances[_to].add(_value);
 
-    Transfer(_from, _to, _value);
+    emit Transfer(_from, _to, _value);
 
     return true;
   }

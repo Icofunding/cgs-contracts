@@ -100,7 +100,7 @@ contract CGSBinaryVote {
     votes.push(newVote);
     numVotes++;
 
-    ev_NewVote(numVotes-1, _callback);
+    emit ev_NewVote(numVotes-1, _callback);
 
     return numVotes-1;
   }
@@ -132,7 +132,7 @@ contract CGSBinaryVote {
 
     votes[voteId].totalVotes = votes[voteId].totalVotes.add(numTokens);
 
-    ev_Vote(voteId, msg.sender, numTokens);
+    emit ev_Vote(voteId, msg.sender, numTokens);
 
     return true;
   }
@@ -168,7 +168,7 @@ contract CGSBinaryVote {
       votes[voteId].votesNo = votes[voteId].votesNo.add(votes[voteId].userDeposits[msg.sender]);
     }
 
-    ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
+    emit ev_Reveal(voteId, msg.sender, votes[voteId].userDeposits[msg.sender], revealedvote);
 
     return true;
   }
@@ -194,7 +194,7 @@ contract CGSBinaryVote {
     // Send tokens to the user
     assert(ERC20(cgsToken).transfer(msg.sender, numTokens));
 
-    ev_Withdraw(voteId, msg.sender, numTokens);
+    emit ev_Withdraw(voteId, msg.sender, numTokens);
 
     return true;
   }
@@ -416,7 +416,7 @@ contract CGSBinaryVote {
     if(_stage == Stages.Settlement)
       finalizeVote(voteId); // It is executed only once
 
-    ev_NewStage(voteId, _stage);
+    emit ev_NewStage(voteId, _stage);
   }
 
   /// @notice Count the votes and calls BinaryVoteCallback to inform of the result. it is executed only once.

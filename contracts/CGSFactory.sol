@@ -61,7 +61,7 @@ contract CGSFactory {
   function register(address cgs) internal {
     cgsList[numCGS] = cgs;
 
-    ev_NewCGS(msg.sender, numCGS, cgs);
+    emit ev_NewCGS(msg.sender, numCGS, cgs);
 
     numCGS++;
   }

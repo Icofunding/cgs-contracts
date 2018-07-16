@@ -188,10 +188,10 @@ contract CGS is Owned {
       weiToWithdrawAtLastClaim = calculateWeiToWithdraw();
       setStage(Stages.ClaimOpen);
 
-      ev_OpenClaim(voteIds[currentClaim]);
+      emit ev_OpenClaim(voteIds[currentClaim]);
     }
 
-    ev_DepositTokens(msg.sender, numTokens);
+    emit ev_DepositTokens(msg.sender, numTokens);
 
     return true;
   }
@@ -217,7 +217,7 @@ contract CGS is Owned {
     // Send the tokens to the user
     assert(ERC20(tokenAddress).transfer(msg.sender, numTokens));
 
-    ev_WithdrawTokens(msg.sender, numTokens);
+    emit ev_WithdrawTokens(msg.sender, numTokens);
 
     return true;
   }
@@ -247,7 +247,7 @@ contract CGS is Owned {
 
       ok = true;
 
-      ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
+      emit ev_CashOut(msg.sender, tokensToUser, tokensToIcoLauncher);
     }
 
     return ok;
@@ -271,7 +271,7 @@ contract CGS is Owned {
     weiRedeem = weiRedeem.add(weiToSend);
     Vault(vaultAddress).withdraw(msg.sender, weiToSend);
 
-    ev_Redeem(msg.sender, numTokens, weiToSend);
+    emit ev_Redeem(msg.sender, numTokens, weiToSend);
 
     return true;
   }
@@ -473,6 +473,6 @@ contract CGS is Owned {
       currentClaim++;
     }
 
-    ev_NewStage(_stage);
+    emit ev_NewStage(_stage);
   }
 }
