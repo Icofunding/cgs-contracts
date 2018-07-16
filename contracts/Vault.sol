@@ -68,7 +68,7 @@ contract Vault {
 
   /// @notice Forwards to deposit()
   /// @dev Forwards to deposit(). Consumes more than the standard gas.
-  function () public payable {
+  function () external payable {
     assert(deposit());
   }
 }

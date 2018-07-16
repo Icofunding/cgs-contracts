@@ -34,7 +34,7 @@ contract TestToken is ERC20, Owned {
     totalSupply += msg.value * 1000;
   }
 
-  function () public payable {
+  function () external payable {
     buy();
   }
 
