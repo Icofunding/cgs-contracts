@@ -394,7 +394,7 @@ contract CGSBinaryVote {
     returns(bool)
   {
 
-    return keccak256(revealedVote, salt) == votes[voteId].secretVotes[user];
+    return keccak256(abi.encodePacked(revealedVote, salt)) == votes[voteId].secretVotes[user];
   }
 
   /// @notice Changes the stage to _stage
