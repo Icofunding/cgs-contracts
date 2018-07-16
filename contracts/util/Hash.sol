@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 contract Hash {
   function sha3Vote(bool a, bytes32 b) public pure returns (bytes32) {
