@@ -25,6 +25,7 @@ contract('CGS', function(accounts) {
   let tokenDecimals;
 
   let claimPrice;
+  let isClaimPriceVariable;
 
   let FakeCGSBinaryVoteContract;
 
@@ -39,6 +40,7 @@ contract('CGS', function(accounts) {
     tokenDecimals = 18;
 
     claimPrice = 500;
+    isClaimPriceVariable = false;
 
     FakeCGSBinaryVoteContract = await FakeCGSBinaryVote.new();
   });
@@ -49,7 +51,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
 
     // Default value for all variables
     assert.equal(weiPerSecond, (await CGSContract.weiPerSecond.call()).toNumber(), "incorrect weiPerSecond");
@@ -64,7 +66,7 @@ contract('CGS', function(accounts) {
     assert.equal(0, (await CGSContract.weiRedeem.call()).toNumber(), "incorrect weiRedeem");
     assert.equal(timestamp, (await CGSContract.startDate.call()).toNumber(), "incorrect date");
     assert.isFalse(await CGSContract.isActive.call(), "incorrect value");
-
+    assert.isFalse(await CGSContract.isClaimPriceVariable.call(), "incorrect value");
   });
 
   it("Set CGSVote as owner", async function() {
@@ -73,10 +75,30 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     assert.equal(FakeCGSBinaryVoteContract.address, await CGSContract.cgsVoteAddress.call(), "incorrect cgsVoteAddress");
+  });
+
+  it("Check variable claim Price", async function() {
+    let icoInitialSupply = 1000;
+    let numTokensToMint = 500;
+    let weiPerSecond = 5;
+    let weiToDeposit = web3.toWei("200", "Wei");
+    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+
+    claimPriceVariable = 5;
+    isClaimPriceVariableTrue = true;
+
+    let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
+    let CGSContract = await CGS.new(weiPerSecond, claimPriceVariable, isClaimPriceVariableTrue, icoLauncher, TestTokenContract.address, timestamp);
+
+    assert.equal(0.05 * icoInitialSupply, (await CGSContract.getClaimPriceTokens.call()).toNumber(), "incorrect variable claim price");
+
+    await TestTokenContract.mint(owner, numTokensToMint);
+
+    assert.equal(0.05 * (icoInitialSupply + numTokensToMint), (await CGSContract.getClaimPriceTokens.call()).toNumber(), "incorrect variable claim price");
   });
 
   it("Deposit tokens", async function() {
@@ -87,7 +109,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -119,7 +141,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -156,7 +178,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -189,7 +211,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -222,7 +244,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -250,7 +272,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -315,7 +337,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -362,7 +384,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -411,7 +433,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -443,7 +465,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -475,7 +497,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -508,7 +530,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -549,7 +571,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -572,7 +594,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -599,7 +621,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -637,7 +659,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit
@@ -674,7 +696,7 @@ contract('CGS', function(accounts) {
     let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
-    let CGSContract = await CGS.new(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, timestamp);
+    let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
     await CGSContract.setCGSVoteAddress(FakeCGSBinaryVoteContract.address);
 
     // Simulate ICO deposit

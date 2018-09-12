@@ -53,7 +53,8 @@ contract CGS is Owned {
 
   mapping (address => uint) public userDeposits; // Number of ICO tokens (plus decimals).
   uint public totalDeposit; // Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
-  uint public claimPrice; // Number of ICO tokens (plus decimals)
+  uint public claimPrice; // Number of ICO tokens (plus decimals) or a percent (0...100], depending on the value of isClaimPriceVariable. See the function getClaimPriceTokens()
+  bool public isClaimPriceVariable; // If the claimPrice depends on the totalSupply or not (a fixed amount of tokens)
   uint public lastClaim; // Timestamp when the last claim was open
   uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
 
@@ -127,21 +128,28 @@ contract CGS is Owned {
   /// @notice Creates a CGS smart contract
   /// @dev Creates a CGS smart contract.
   /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
-  /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
+  /// @param _claimPrice Number of ICO tokens (plus decimals) or a percent (0...100], depending on the value of isClaimPriceVariable. See the function getClaimPriceTokens()
+  /// @param _isClaimPriceVariable If the claimPrice depends on the totalSupply or not (a fixed amount of tokens)
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   constructor(
     uint _weiPerSecond,
     uint _claimPrice,
+    bool _isClaimPriceVariable,
     address _icoLauncher,
     address _tokenAddress,
     uint _startDate
   ) public {
     require(_weiPerSecond > 0);
 
+    // If claimPrice is varaible, it should be a percentage of the totalSupply between 0 and 100
+    if(_isClaimPriceVariable)
+      require(_claimPrice <= 100);
+
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
+    isClaimPriceVariable = _isClaimPriceVariable;
     icoLauncherWallet = _icoLauncher;
     tokenAddress = _tokenAddress;
     vaultAddress = new Vault(this);
@@ -179,7 +187,7 @@ contract CGS is Owned {
     claimDeposited[msg.sender] = currentClaim;
 
     // Open a claim?
-    if(totalDeposit >= claimPrice) {
+    if(totalDeposit >= getClaimPriceTokens()) {
       voteIds[currentClaim] = CGSBinaryVoteInterface(cgsVoteAddress).startVote(this);
       lastClaim = now;
       weiBalanceAtlastClaim = Vault(vaultAddress).etherBalance();
@@ -444,6 +452,17 @@ contract CGS is Owned {
       active = true;
 
     return active;
+  }
+
+  /// @notice Returns the number of tokens needed to open a claim
+  /// @dev Returns the number of tokens needed to open a claim
+  /// @return the number of tokens needed to open a claim
+  function getClaimPriceTokens() public view returns (uint numTokens) {
+    if(isClaimPriceVariable) {
+      numTokens = claimPrice.mul(ERC20(tokenAddress).totalSupply()).div(100);
+    } else {
+      numTokens = claimPrice;
+    }
   }
 
   /// @notice Changes the stage to _stage

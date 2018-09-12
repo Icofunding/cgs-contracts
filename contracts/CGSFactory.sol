@@ -36,13 +36,15 @@ contract CGSFactory {
   /// @notice Creates a new CGS smart contract
   /// @dev Creates a new CGS smart contract
   /// @param _weiPerSecond Amount of wei available to withdraw by the ICO lacunher per second
-  /// @param _claimPrice Number of tokens (plus decimals) needed to open a claim
+  /// @param _claimPrice Number of ICO tokens (plus decimals) or a percent (0...100], depending on the value of isClaimPriceVariable.
+  /// @param _isClaimPriceVariable If the claimPrice depends on the totalSupply or not (a fixed amount of tokens)
   /// @param _icoLauncher Token wallet of the ICO launcher
   /// @param _tokenAddress Address of the ICO token smart contract
   /// @param _startDate Date from when the ICO launcher can start withdrawing funds
   function create(
     uint _weiPerSecond,
     uint _claimPrice,
+    bool _isClaimPriceVariable,
     address _icoLauncher,
     address _tokenAddress,
     uint _startDate
@@ -50,7 +52,7 @@ contract CGSFactory {
     public
     returns (address cgs)
   {
-    cgs = new CGS(_weiPerSecond, _claimPrice, _icoLauncher, _tokenAddress, _startDate);
+    cgs = new CGS(_weiPerSecond, _claimPrice, _isClaimPriceVariable, _icoLauncher, _tokenAddress, _startDate);
     CGS(cgs).setCGSVoteAddress(cgsVoteAddress);
     register(cgs);
   }

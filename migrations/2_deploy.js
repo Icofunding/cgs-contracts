@@ -25,6 +25,7 @@ module.exports = async function(deployer, network, accounts) {
   // CGSFactory
   let weiPerSecond = 5000000;
   let claimPrice = "500000000000000000000";
+  let isClaimPriceVariable = false;
   let icoLauncher = accounts[0]; // Write your ethereum address here
 
   await deployer.deploy(CGSTestToken, cgsHolder, cgsInitialSupply, cgsTokenName, cgsTokenSymbol, cgsTokenDecimals);
@@ -37,7 +38,7 @@ module.exports = async function(deployer, network, accounts) {
   //let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher})).logs[0];
 
   // Sends 10 Ether to Vault
-  await deployer.deploy(CGS, weiPerSecond, claimPrice, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher});
+  await deployer.deploy(CGS, weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher});
   let CGSContract = CGS.at(CGS.address);
   await CGSContract.setCGSVoteAddress(CGSBinaryVote.address, {from: icoLauncher});
   //let CGSContract = CGS.at(event.args.cgs);
