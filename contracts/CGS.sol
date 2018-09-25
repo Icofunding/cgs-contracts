@@ -178,7 +178,7 @@ contract CGS is Owned {
     // Enough tokens allowed
     require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
 
-    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
 
     // Update balances
     userDeposits[msg.sender] = userDeposits[msg.sender].add(numTokens);
@@ -273,7 +273,7 @@ contract CGS is Owned {
 
     // Send Tokens to the Redeem Vesting
     // Redeem vesting is needed to avoid the icoLauncher using Redeem to drain all the ether.
-    assert(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
     tokensInVesting = tokensInVesting.add(numTokens);
     // Send ether to ICO token holder
     weiRedeem = weiRedeem.add(weiToSend);
@@ -336,17 +336,17 @@ contract CGS is Owned {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
-    if(s == Stages.ClaimOpen && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() <= now)) {
+    if(s == Stages.ClaimOpen && (lastClaim.add( CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() ) <= now)) {
       if(CGSBinaryVoteInterface(cgsVoteAddress).getVoteResult(voteIds[currentClaim]))
         s = Stages.ClaimEnded;
       else
         s = Stages.Redeem;
     }
 
-    if(s == Stages.Redeem && (lastClaim + CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= now))
+    if(s == Stages.Redeem && (lastClaim.add( CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() ).add(TIME_FOR_REDEEM) <= now))
       s = Stages.ClaimEnded;
 
-    if(s == Stages.ClaimEnded && (lastClaim + TIME_BETWEEN_CLAIMS <= now))
+    if(s == Stages.ClaimEnded && (lastClaim.add(TIME_BETWEEN_CLAIMS) <= now))
       s = Stages.ClaimPeriod;
 
     return s;

@@ -57,7 +57,6 @@ contract CGSBinaryVote {
   }
 
   Vote[] public votes; // Log of votes
-  uint public numVotes; // Number of elements in the array votes
 
   address public cgsToken; // Address of the CGS token smart contract
 
@@ -69,6 +68,13 @@ contract CGSBinaryVote {
 
   modifier atStage(uint voteId, Stages _stage) {
     require(votes[voteId].stage == _stage);
+
+    _;
+  }
+
+  modifier voteOnRange(uint voteId) {
+    // The voteId must exist
+    require(voteId < votes.length);
 
     _;
   }
@@ -98,11 +104,10 @@ contract CGSBinaryVote {
     Vote memory newVote = Vote(now, Stages.SecretVote, 0, 0, _callback, 0);
 
     votes.push(newVote);
-    numVotes++;
 
-    emit ev_NewVote(numVotes-1, _callback);
+    emit ev_NewVote(votes.length-1, _callback);
 
-    return numVotes-1;
+    return votes.length-1;
   }
 
   /// @notice Deposits CGS tokens and vote. Should be executed after Token.Approve(...) or Token.increaseApproval(...)
@@ -112,12 +117,11 @@ contract CGSBinaryVote {
   /// @param secretVote Hash of the vote + salt
   function vote(uint voteId, uint numTokens, bytes32 secretVote)
     public
+    voteOnRange(voteId)
     timedTransitions(voteId)
     atStage(voteId, Stages.SecretVote)
     returns(bool)
   {
-    // The voteId must exist
-    require(voteId < numVotes);
     // It can only vote once per Vote
     require(votes[voteId].userDeposits[msg.sender] == 0);
     // You cannot vote with 0 tokens (?)
@@ -125,7 +129,7 @@ contract CGSBinaryVote {
     // Enough tokens allowed
     require(numTokens <= ERC20(cgsToken).allowance(msg.sender, this));
 
-    assert(ERC20(cgsToken).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(cgsToken).transferFrom(msg.sender, this, numTokens));
 
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
@@ -143,6 +147,7 @@ contract CGSBinaryVote {
   /// @param salt Random salt used to vote
   function reveal(uint voteId, bytes32 salt)
     public
+    voteOnRange(voteId)
     timedTransitions(voteId)
     atStage(voteId, Stages.RevealVote)
     returns(bool)
@@ -178,6 +183,7 @@ contract CGSBinaryVote {
   /// @param voteId ID of the vote
   function withdrawTokens(uint voteId)
     public
+    voteOnRange(voteId)
     timedTransitions(voteId)
     atStage(voteId, Stages.Settlement)
     returns(bool)
@@ -199,6 +205,12 @@ contract CGSBinaryVote {
     return true;
   }
 
+  /// @notice Synchronizes the stage of the contract
+  /// @dev Synchronizes the stage of the contract
+  /// @param voteId ID of the vote
+  function wake(uint voteId) public voteOnRange(voteId) timedTransitions(voteId) {
+  }
+
   /// @notice Returns the actual stage of a vote
   /// @dev Returns the actual stage of a vote
   /// @param voteId ID of the votes
@@ -206,19 +218,13 @@ contract CGSBinaryVote {
   function getStage(uint voteId) public view returns(Stages) {
     Stages stage = Stages.SecretVote;
 
-    if(now >= votes[voteId].date + TIME_TO_VOTE)
+    if(now >= votes[voteId].date.add(TIME_TO_VOTE))
       stage = Stages.RevealVote;
 
-    if(now >= votes[voteId].date + TIME_TO_VOTE + TIME_TO_REVEAL)
+    if(now >= votes[voteId].date.add(TIME_TO_VOTE).add(TIME_TO_REVEAL))
       stage = Stages.Settlement;
 
     return stage;
-  }
-
-  /// @notice Synchronizes the stage of the contract
-  /// @dev Synchronizes the stage of the contract
-  /// @param voteId ID of the vote
-  function wake(uint voteId) public timedTransitions(voteId) {
   }
 
   /// @notice Calculates the number of tokens to withdraw after a voting process
@@ -226,7 +232,11 @@ contract CGSBinaryVote {
   /// @param voteId ID of the vote
   /// @param who Address of the user
   /// @return number of tokens
-  function tokensToWithdraw(uint voteId, address who) public view returns(uint) {
+  function tokensToWithdraw(uint voteId, address who)
+    public
+    view
+    returns(uint)
+  {
     // Number of tokens deposited by the user
     uint deposited = votes[voteId].userDeposits[who];
     // Did the vote succeed?
@@ -348,6 +358,12 @@ contract CGSBinaryVote {
     return (votes[voteId].votesYes >= votes[voteId].votesNo);
   }
 
+  /// @notice Returns the number of votes in the log
+  /// @dev Returns the number of votes in the log
+  function numVotes() public view returns(uint) {
+    return votes.length;
+  }
+
   /// @notice Returns how much time last the voting process
   /// @dev Returns how much time last the voting process
   /// @return how much time last the voting process
@@ -356,7 +372,7 @@ contract CGSBinaryVote {
     pure
     returns(uint)
   {
-    return TIME_TO_VOTE + TIME_TO_REVEAL;
+    return TIME_TO_VOTE.add(TIME_TO_REVEAL);
   }
 
   /// @notice Returns how much time last the vote phase
@@ -414,7 +430,7 @@ contract CGSBinaryVote {
   function newStageHandler(uint voteId, Stages _stage) private {
     // Executed only once
     if(_stage == Stages.Settlement)
-      finalizeVote(voteId); // It is executed only once
+      finalizeVote(voteId);
 
     emit ev_NewStage(voteId, _stage);
   }
@@ -424,6 +440,6 @@ contract CGSBinaryVote {
   /// @param voteId ID of the vote
   function finalizeVote(uint voteId) private timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
 
-    assert(BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, getVoteResult(voteId)));
+    require( BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, getVoteResult(voteId)) );
   }
 }
