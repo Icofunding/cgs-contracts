@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import './util/SafeMath.sol';
+import "./util/SafeMath.sol";
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -33,9 +33,9 @@ contract Vault {
   event ev_Withdraw(address indexed to, uint amount);
 
   modifier onlyCGS() {
-    require(msg.sender == cgsAddress);
+    require(msg.sender == cgsAddress, "Only CGS can execute it");
 
-      _;
+    _;
   }
 
   constructor(address _cgsAddress) public {
@@ -69,6 +69,6 @@ contract Vault {
   /// @notice Forwards to deposit()
   /// @dev Forwards to deposit(). Consumes more than the standard gas.
   function () external payable {
-    require(deposit());
+    require(deposit(), "Error depositing Ether");
   }
 }

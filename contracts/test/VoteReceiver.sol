@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import '../interfaces/BinaryVoteCallback.sol';
+import "../interfaces/BinaryVoteCallback.sol";
 
 /**
  * ONLY FOR TESTING

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import './util/SafeMath.sol';
-import './util/Owned.sol';
-import './interfaces/ERC20.sol';
-import './interfaces/CGSBinaryVoteInterface.sol';
-import './Vault.sol';
+import "./util/SafeMath.sol";
+import "./util/Owned.sol";
+import "./interfaces/ERC20.sol";
+import "./interfaces/CGSBinaryVoteInterface.sol";
+import "./Vault.sol";
 
 
 /*
@@ -53,8 +53,10 @@ contract CGS is Owned {
 
   mapping (address => uint) public userDeposits; // Number of ICO tokens (plus decimals).
   uint public totalDeposit; // Number of ICO tokens (plus decimals) collected to open a claim. Resets to 0 after a claim is open.
-  uint public claimPrice; // Number of ICO tokens (plus decimals) or a percent (0...100], depending on the value of isClaimPriceVariable. See the function getClaimPriceTokens()
+  // See the function getClaimPriceTokens()
+  uint public claimPrice; // Number of ICO tokens (plus decimals) or a percent (0...100], depending on isClaimPriceVariable.
   bool public isClaimPriceVariable; // If the claimPrice depends on the totalSupply or not (a fixed amount of tokens)
+
   uint public lastClaim; // Timestamp when the last claim was open
   uint public weiBalanceAtlastClaim; // Wei balance when the last claim was open
 
@@ -91,7 +93,7 @@ contract CGS is Owned {
 
 
   modifier atStage(Stages _stage) {
-    require(stage == _stage);
+    require(stage == _stage, "Wrong stage");
 
     _;
   }
@@ -114,13 +116,13 @@ contract CGS is Owned {
   }
 
   modifier onlyCGSVote() {
-    require(msg.sender == cgsVoteAddress);
+    require(msg.sender == cgsVoteAddress, "Only CGSVote can execute it");
 
     _;
   }
 
   modifier onlyIcoLauncher() {
-    require(msg.sender == icoLauncherWallet);
+    require(msg.sender == icoLauncherWallet, "Only ICO launcher can execute it");
 
     _;
   }
@@ -141,11 +143,11 @@ contract CGS is Owned {
     address _tokenAddress,
     uint _startDate
   ) public {
-    require(_weiPerSecond > 0);
+    require(_weiPerSecond > 0, "Wei per second must be higher than 0");
 
-    // If claimPrice is varaible, it should be a percentage of the totalSupply between 0 and 100
+    // If claimPrice is variable, it should be a percentage of the totalSupply between 0 and 100
     if(_isClaimPriceVariable)
-      require(_claimPrice <= 100);
+      require(_claimPrice <= 100, "Claim price must be a percent");
 
     weiPerSecond = _weiPerSecond;
     claimPrice = _claimPrice;
@@ -161,8 +163,11 @@ contract CGS is Owned {
   /// @dev Sets the value of cgsVoteAddress
   /// @param _cgsVoteAddress Address of the CGS Vote smart contract
   function setCGSVoteAddress(address _cgsVoteAddress) public onlyOwner {
-    require(!isActive());
-    require(CGSBinaryVoteInterface(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS);
+    require(!isActive(), "The address of an active CGS cannot be changed");
+    require(
+      CGSBinaryVoteInterface(_cgsVoteAddress).getVotingProcessDuration() + TIME_FOR_REDEEM <= TIME_BETWEEN_CLAIMS,
+      "There is not enough time between claims"
+    );
 
     cgsVoteAddress = _cgsVoteAddress;
   }
@@ -172,13 +177,16 @@ contract CGS is Owned {
   /// @param numTokens Number of tokens
   function depositTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // The user cannot deposit tokens if there is no ether to claim or the CGSVote is not set
-    require(isActive());
+    require(isActive(), "The CSG must be active");
     // The user has no tokens deposited in previous claims
-    require(claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim);
+    require(
+      claimDeposited[msg.sender] == 0 || claimDeposited[msg.sender] == currentClaim,
+      "The sender cannot have tokens deposited in previous claims"
+    );
     // Enough tokens allowed
-    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
+    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this), "Not enough tokens allowed");
 
-    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens), "Error transfering tokens");
 
     // Update balances
     userDeposits[msg.sender] = userDeposits[msg.sender].add(numTokens);
@@ -209,10 +217,10 @@ contract CGS is Owned {
   /// @param numTokens Number of tokens
   function withdrawTokens(uint numTokens) public timedTransitions atStage(Stages.ClaimPeriod) returns(bool) {
     // Enough tokens deposited
-    require(userDeposits[msg.sender] >= numTokens); // Redundant with SafeMath
-    // The tokens are doposited for the current claim.
+    require(userDeposits[msg.sender] >= numTokens, "Not enough tokens deposited"); // Redundant with SafeMath
+    // The tokens are deposited for the current claim.
     // If the tokens are from previous claims, the user should cashOut instead
-    require(claimDeposited[msg.sender] == currentClaim);
+    require(claimDeposited[msg.sender] == currentClaim, "Tokens deposited in previous claims should be cash out instead");
 
     // Update balances
     userDeposits[msg.sender] = userDeposits[msg.sender].sub(numTokens);
@@ -266,14 +274,14 @@ contract CGS is Owned {
   /// @param numTokens Number of tokens
   function redeem(uint numTokens) public wakeVoter timedTransitions atStage(Stages.Redeem) returns(bool) {
     // Enough tokens allowed
-    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this));
+    require(numTokens <= ERC20(tokenAddress).allowance(msg.sender, this), "Not enough tokens allowed");
 
     // Calculate the amount of Wei to receive in exchange of the tokens
     uint weiToSend = calculateEtherPerTokens(numTokens);
 
     // Send Tokens to the Redeem Vesting
     // Redeem vesting is needed to avoid the icoLauncher using Redeem to drain all the ether.
-    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(tokenAddress).transferFrom(msg.sender, this, numTokens), "Error transfering tokens");
     tokensInVesting = tokensInVesting.add(numTokens);
     // Send ether to ICO token holder
     weiRedeem = weiRedeem.add(weiToSend);
@@ -290,7 +298,7 @@ contract CGS is Owned {
   /// @param voteResult Outcome of the vote
   function binaryVoteResult(uint voteId, bool voteResult) public onlyCGSVote returns(bool) {
     // To make sure that the Id of the vote is the one expected
-    require(voteIds[currentClaim] == voteId);
+    require(voteIds[currentClaim] == voteId, "Wrong vote ID");
 
     claimResults[currentClaim] = voteResult;
 
@@ -323,7 +331,7 @@ contract CGS is Owned {
   /// @dev Withdraws tokens in Redeem vesting by the ICO launcher when the CGS ends
   function withdrawLockedTokens() public onlyIcoLauncher {
     // This is needed to avoid the icoLauncher using Redeem to drain all the ether.
-    require(Vault(vaultAddress).etherBalance() == 0);
+    require(Vault(vaultAddress).etherBalance() == 0, "You have to withdraw the Ether first");
 
     assert(ERC20(tokenAddress).transfer(icoLauncherWallet, tokensInVesting));
 
@@ -336,14 +344,14 @@ contract CGS is Owned {
   function getStage() public view returns(Stages) {
     Stages s = stage;
 
-    if(s == Stages.ClaimOpen && (lastClaim.add( CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() ) <= now)) {
+    if(s == Stages.ClaimOpen && (lastClaim.add(CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration()) <= now)) {
       if(CGSBinaryVoteInterface(cgsVoteAddress).getVoteResult(voteIds[currentClaim]))
         s = Stages.ClaimEnded;
       else
         s = Stages.Redeem;
     }
 
-    if(s == Stages.Redeem && (lastClaim.add( CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration() ).add(TIME_FOR_REDEEM) <= now))
+    if(s == Stages.Redeem && (lastClaim.add(CGSBinaryVoteInterface(cgsVoteAddress).getVotingProcessDuration()).add(TIME_FOR_REDEEM) <= now))
       s = Stages.ClaimEnded;
 
     if(s == Stages.ClaimEnded && (lastClaim.add(TIME_BETWEEN_CLAIMS) <= now))
@@ -412,7 +420,7 @@ contract CGS is Owned {
       uint weiToWithdraw = calculateWeiToWithdraw();
 
       // etherPerTokens = ( numTokens * (weiBalanceAtlastClaim - weiToWithdraw) ) / (ERC20(tokenAddress).totalSupply() - tokensInVestingAtLastClaim);
-      etherPerTokens = (  numTokens.mul( weiBalanceAtlastClaim.sub(weiToWithdraw) )  ).div( ERC20(tokenAddress).totalSupply().sub(tokensInVestingAtLastClaim) );
+      etherPerTokens = ( numTokens.mul(weiBalanceAtlastClaim.sub(weiToWithdraw)) ).div(ERC20(tokenAddress).totalSupply().sub(tokensInVestingAtLastClaim));
     }
 
     return etherPerTokens;

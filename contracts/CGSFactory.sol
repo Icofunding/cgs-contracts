@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import './CGS.sol';
+import "./CGS.sol";
 
 /*
   Copyright (C) 2018 Icofunding S.L.

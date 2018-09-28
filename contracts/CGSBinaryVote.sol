@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import './util/SafeMath.sol';
-import './interfaces/BinaryVoteCallback.sol';
-import './interfaces/ERC20.sol';
+import "./util/SafeMath.sol";
+import "./interfaces/BinaryVoteCallback.sol";
+import "./interfaces/ERC20.sol";
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -67,14 +67,14 @@ contract CGSBinaryVote {
   event ev_Withdraw(uint indexed voteId, address who, uint amount);
 
   modifier atStage(uint voteId, Stages _stage) {
-    require(votes[voteId].stage == _stage);
+    require(votes[voteId].stage == _stage, "Wrong stage");
 
     _;
   }
 
   modifier voteOnRange(uint voteId) {
     // The voteId must exist
-    require(voteId < votes.length);
+    require(voteId < votes.length, "Vote ID out of range");
 
     _;
   }
@@ -123,13 +123,13 @@ contract CGSBinaryVote {
     returns(bool)
   {
     // It can only vote once per Vote
-    require(votes[voteId].userDeposits[msg.sender] == 0);
+    require(votes[voteId].userDeposits[msg.sender] == 0, "You have already voted");
     // You cannot vote with 0 tokens (?)
-    require(numTokens > 0);
+    require(numTokens > 0, "You cannot vote with 0 tokens");
     // Enough tokens allowed
-    require(numTokens <= ERC20(cgsToken).allowance(msg.sender, this));
+    require(numTokens <= ERC20(cgsToken).allowance(msg.sender, this), "Not enough tokens allowed");
 
-    require(ERC20(cgsToken).transferFrom(msg.sender, this, numTokens));
+    require(ERC20(cgsToken).transferFrom(msg.sender, this, numTokens), "Error transfering tokens");
 
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
@@ -153,9 +153,9 @@ contract CGSBinaryVote {
     returns(bool)
   {
     // Only users who vote can reveal their vote
-    require(votes[voteId].secretVotes[msg.sender].length > 0);
+    require(votes[voteId].secretVotes[msg.sender].length > 0, "Only users who voted can reveal their vote");
     // Check if the vote is already revealed
-    require(!votes[voteId].hasRevealed[msg.sender]);
+    require(!votes[voteId].hasRevealed[msg.sender], "Vote already revealed");
 
     // Check the vote as revealed
     votes[voteId].hasRevealed[msg.sender] = true;
@@ -192,7 +192,7 @@ contract CGSBinaryVote {
     uint numTokens = tokensToWithdraw(voteId, msg.sender);
 
     // Check if the user has any withdrawal pending
-    require(numTokens > 0);
+    require(numTokens > 0, "No tokens to withdraw");
 
     // Update balance
     votes[voteId].userDeposits[msg.sender] = 0;
@@ -257,19 +257,19 @@ contract CGSBinaryVote {
         bonus = votes[voteId].totalVotes.sub(votes[voteId].votesYes).mul(20).div(100);
 
         // numTokens = deposited + bonus*deposited/votes[voteId].votesYes;
-        numTokens = deposited.add( bonus.mul(deposited).div(votes[voteId].votesYes) );
+        numTokens = deposited.add(bonus.mul(deposited).div(votes[voteId].votesYes));
       } else {
         // If the result is negative
         // bonus = ((votes[voteId].totalVotes - votes[voteId].votesNo) * 20) / 100;
         bonus = votes[voteId].totalVotes.sub(votes[voteId].votesNo).mul(20).div(100);
 
         // numTokens = deposited + bonus*deposited/votes[voteId].votesNo;
-        numTokens = deposited.add( bonus.mul(deposited).div(votes[voteId].votesNo) );
+        numTokens = deposited.add(bonus.mul(deposited).div(votes[voteId].votesNo));
       }
     } else {
       // Losers and people that did not revealed their vote lose 20% of their tokens
       // numTokens = deposited - (deposited*20)/100;
-      numTokens = deposited.sub( deposited.mul(20).div(100) );
+      numTokens = deposited.sub(deposited.mul(20).div(100));
     }
 
     return numTokens;
@@ -291,7 +291,7 @@ contract CGSBinaryVote {
   /// @param who Address of the user
   /// @return the vote of the user
   function getRevealedVote(uint voteId, address who) public view returns(bool) {
-    require(hasUserRevealed(voteId, who));
+    require(hasUserRevealed(voteId, who), "Vote not revealed");
 
     return votes[voteId].revealedVotes[who];
   }
@@ -340,7 +340,7 @@ contract CGSBinaryVote {
       // Vote false
       revealedvote = false;
     } else {
-      revert(); // Revert the tx if the reveal fails
+      revert("Error revealing the vote"); // Revert the tx if the reveal fails
     }
 
     return revealedvote;
@@ -440,6 +440,9 @@ contract CGSBinaryVote {
   /// @param voteId ID of the vote
   function finalizeVote(uint voteId) private timedTransitions(voteId) atStage(voteId, Stages.Settlement) {
 
-    require( BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, getVoteResult(voteId)) );
+    require(
+      BinaryVoteCallback(votes[voteId].callback).binaryVoteResult(voteId, getVoteResult(voteId)),
+      "Error receiving the result of the vote"
+    );
   }
 }

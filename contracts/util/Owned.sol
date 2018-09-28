@@ -5,19 +5,19 @@ pragma solidity ^0.4.24;
  * Standard Owned contract.
  */
 contract Owned {
-    address public owner;
+  address public owner;
 
-    modifier onlyOwner() {
-      require(msg.sender == owner);
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Only the owner can execute it");
 
-        _;
-    }
+    _;
+  }
 
-    constructor() public {
-        owner = msg.sender;
-    }
+  constructor() public {
+    owner = msg.sender;
+  }
 
-    function changeOwner(address newOwner) public onlyOwner {
-      owner = newOwner;
-    }
+  function changeOwner(address newOwner) public onlyOwner {
+    owner = newOwner;
+  }
 }

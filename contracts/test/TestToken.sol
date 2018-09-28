@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import '../interfaces/ERC20.sol';
-import '../util/SafeMath.sol';
-import '../util/Owned.sol';
+import "../interfaces/ERC20.sol";
+import "../util/SafeMath.sol";
+import "../util/Owned.sol";
 
 /**
  * Standard ERC20 token with fake data. ONLY FOR TESTING
