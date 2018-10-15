@@ -1,8 +1,64 @@
 pragma solidity ^0.4.24;
 
-import "./util/SafeMath.sol";
-import "./interfaces/BinaryVoteCallback.sol";
-import "./interfaces/ERC20.sol";
+library SafeMath {
+
+  /**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) {
+      return 0;
+    }
+    uint256 c = a * b;
+    require(c / a == b, "Multiplication overflow");
+    return c;
+  }
+
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    // uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return a / b;
+  }
+
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b <= a, "Substraction overflow");
+    return a - b;
+  }
+
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a, "Addition overflow");
+    return c;
+  }
+}
+
+
+contract ERC20 {
+  uint public totalSupply;
+  function balanceOf(address who) public view returns (uint);
+  function allowance(address owner, address spender) public view returns (uint);
+
+  function transfer(address to, uint value) public returns (bool ok);
+  function transferFrom(address from, address to, uint value) public returns (bool ok);
+  function approve(address spender, uint value) public returns (bool ok);
+
+  event Transfer(address indexed from, address indexed to, uint value);
+  event Approval(address indexed owner, address indexed spender, uint value);
+}
+
+contract BinaryVoteCallback {
+  function binaryVoteResult(uint voteId, bool result) public returns(bool);
+}
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -24,8 +80,8 @@ import "./interfaces/ERC20.sol";
 /// @title CGSBinaryVote contract
 /// @author Icofunding
 contract CGSBinaryVote {
-  uint constant TIME_TO_VOTE = 7 days;
-  uint constant TIME_TO_REVEAL = 3 days;
+  uint constant TIME_TO_VOTE = 1 days;
+  uint constant TIME_TO_REVEAL = 1 days;
 
   using SafeMath for uint;
 

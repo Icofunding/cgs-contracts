@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-import '../interfaces/BinaryVoteCallback.sol';
+import "../interfaces/BinaryVoteCallback.sol";
 
 /**
  * ONLY FOR TESTING
@@ -17,10 +17,10 @@ contract FakeCGSBinaryVote {
   }
 
   function finalizeVote(uint voteId, bool result) public {
-    BinaryVoteCallback(callback).binaryVoteResult(voteId, result);
+    assert(BinaryVoteCallback(callback).binaryVoteResult(voteId, result));
   }
 
-  function wake(uint voteId) public {
+  function wake(uint /* voteId */) public {
     isVoteOpen = false;
   }
 

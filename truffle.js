@@ -6,5 +6,8 @@ module.exports = {
       gas: 6712390,
       network_id: "*" // Match any network id
     }
+  },
+  solc: {
+    evmVersion: "byzantium"
   }
 };

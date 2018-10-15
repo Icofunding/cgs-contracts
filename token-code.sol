@@ -1,12 +1,79 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.18;
 
-import "../interfaces/ERC20.sol";
-import "../util/SafeMath.sol";
-import "../util/Owned.sol";
+contract ERC20 {
+  uint public totalSupply;
+  function balanceOf(address who) public view returns (uint);
+  function allowance(address owner, address spender) public view returns (uint);
 
-/**
- * Standard ERC20 token with fake data. ONLY FOR TESTING
- */
+  function transfer(address to, uint value) public returns (bool ok);
+  function transferFrom(address from, address to, uint value) public returns (bool ok);
+  function approve(address spender, uint value) public returns (bool ok);
+
+  event Transfer(address indexed from, address indexed to, uint value);
+  event Approval(address indexed owner, address indexed spender, uint value);
+}
+
+
+library SafeMath {
+
+  /**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) {
+      return 0;
+    }
+    uint256 c = a * b;
+    require(c / a == b, "Multiplication overflow");
+    return c;
+  }
+
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    // uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return a / b;
+  }
+
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b <= a, "Substraction overflow");
+    return a - b;
+  }
+
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a, "Addition overflow");
+    return c;
+  }
+}
+
+contract Owned {
+  address public owner;
+
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Only the owner can execute it");
+
+    _;
+  }
+
+  constructor() public {
+    owner = msg.sender;
+  }
+
+  function changeOwner(address newOwner) public onlyOwner {
+    owner = newOwner;
+  }
+}
+
 contract TestToken is ERC20, Owned {
   string public name;
   string public symbol;
@@ -17,11 +84,10 @@ contract TestToken is ERC20, Owned {
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  constructor(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
+  constructor(string _name, string _symbol, uint _decimals) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
-    mint(recipient, amount);
   }
 
   function mint(address recipient, uint amount) public onlyOwner {

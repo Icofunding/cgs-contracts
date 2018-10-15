@@ -1,10 +1,131 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.18;
 
-import "./util/SafeMath.sol";
-import "./util/Owned.sol";
-import "./interfaces/ERC20.sol";
-import "./interfaces/CGSBinaryVoteInterface.sol";
-import "./Vault.sol";
+library SafeMath {
+
+  /**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) {
+      return 0;
+    }
+    uint256 c = a * b;
+    require(c / a == b, "Multiplication overflow");
+    return c;
+  }
+
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    // uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return a / b;
+  }
+
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b <= a, "Substraction overflow");
+    return a - b;
+  }
+
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a, "Addition overflow");
+    return c;
+  }
+}
+
+
+contract ERC20 {
+  uint public totalSupply;
+  function balanceOf(address who) public view returns (uint);
+  function allowance(address owner, address spender) public view returns (uint);
+
+  function transfer(address to, uint value) public returns (bool ok);
+  function transferFrom(address from, address to, uint value) public returns (bool ok);
+  function approve(address spender, uint value) public returns (bool ok);
+
+  event Transfer(address indexed from, address indexed to, uint value);
+  event Approval(address indexed owner, address indexed spender, uint value);
+}
+
+/*
+  Copyright (C) 2018 Icofunding S.L.
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+/// @title CGSBinaryVote contract
+/// @author Icofunding
+contract CGSBinaryVoteInterface {
+
+  enum Stages {
+    SecretVote,
+    RevealVote,
+    Settlement
+  }
+
+  struct Vote {
+    uint date; // Timestamp when the claim is open
+    Stages stage; // Current state of the vote
+    uint votesYes; // Votes that the project is doing a proper use of the funds. Updated during Reveal stage
+    uint votesNo; // Votes that the project is not doing a proper use of the funds. Updated during Reveal stage
+    address callback; // The address to call when the vote ends
+    bool finalized; // If the result of the project has already been informed to the callback
+    uint totalVotes; // Total number of votes (at the moment of voting, no matter if revealed or not)
+    mapping (address => bytes32) secretVotes; // Hashes of votes
+    mapping (address => bool) revealedVotes; // Votes in plain text
+    mapping (address => bool) hasRevealed; // True if the user has revealed his vote
+    mapping (address => uint) userDeposits; // Amount of CGS tokens deposited for this vote.
+  }
+
+  Vote[] public votes; // Log of votes
+  uint public numVotes; // Number of elements in the array votes
+
+  address public cgsToken; // Address of the CGS token smart contract
+
+  function startVote(address _callback) public returns(uint);
+
+  function vote(uint voteId, uint numTokens, bytes32 secretVote) public returns(bool);
+  function reveal(uint voteId, bytes32 salt) public returns(bool);
+  function withdrawTokens(uint voteId) public returns(bool);
+
+  function getStage(uint voteId) public view returns(Stages);
+
+  function tokensToWithdraw(uint voteId, address who) public view returns(uint);
+
+  function wake(uint voteId) public;
+
+  function hasUserRevealed(uint voteId, address who) public view returns(bool);
+  function getRevealedVote(uint voteId, address who) public view returns(bool);
+  function getUserDeposit(uint voteId, address who) public view returns(uint);
+
+  function canRevealVote(uint voteId, address user, bytes32 salt) public view returns(bool);
+  function calculateRevealedVote(uint voteId, address user, bytes32 salt) public view returns(bool);
+  function getVoteResult(uint voteId) public view returns(bool);
+
+  function getVotingProcessDuration() public pure returns(uint);
+  function getVotePhaseDuration() public pure returns(uint);
+  function getRevealPhaseDuration() public pure returns(uint);
+}
 
 
 /*
@@ -24,11 +145,102 @@ import "./Vault.sol";
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/// @title CGS contract
+/// @title Vault contract
 /// @author Icofunding
+contract Vault {
+  uint public totalCollected; // Wei
+  uint public etherBalance; // Wei
+
+  address public cgsAddress;
+
+  using SafeMath for uint;
+
+  event ev_Deposit(address indexed sender, uint amount);
+  event ev_Withdraw(address indexed to, uint amount);
+
+  modifier onlyCGS() {
+    require(msg.sender == cgsAddress, "Only CGS can execute it");
+
+    _;
+  }
+
+  constructor(address _cgsAddress) public {
+    cgsAddress = _cgsAddress;
+  }
+
+  /// @notice Deposits ether
+  /// @dev Deposits ether
+  function deposit() public payable returns(bool) {
+    totalCollected = totalCollected.add(msg.value);
+    etherBalance = etherBalance.add(msg.value);
+
+    emit ev_Deposit(msg.sender, msg.value);
+
+    return true;
+  }
+
+  /// @notice Sends ether to the ICO launcher/token holders
+  /// @dev Sends ether to the ICO launcher/token holders
+  /// @param to Account where the funds are going to be sent
+  /// @param amount Amount of Wei to withdraw
+  function withdraw(address to, uint amount) public onlyCGS returns(bool) {
+    etherBalance = etherBalance.sub(amount);
+    to.transfer(amount);
+
+    emit ev_Withdraw(to, amount);
+
+    return true;
+  }
+
+  /// @notice Forwards to deposit()
+  /// @dev Forwards to deposit(). Consumes more than the standard gas.
+  function () external payable {
+    require(deposit(), "Error depositing Ether");
+  }
+}
+
+/**
+ * Manages the ownership of a contract
+ * Standard Owned contract.
+ */
+contract Owned {
+  address public owner;
+
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Only the owner can execute it");
+
+    _;
+  }
+
+  constructor() public {
+    owner = msg.sender;
+  }
+
+  function changeOwner(address newOwner) public onlyOwner {
+    owner = newOwner;
+  }
+}
+
+/*
+  Copyright (C) 2018 Icofunding S.L.
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 contract CGS is Owned {
-  uint constant TIME_BETWEEN_CLAIMS = 100 days;
-  uint constant TIME_FOR_REDEEM = 10 days;
+  uint constant TIME_BETWEEN_CLAIMS = 5 days;
+  uint constant TIME_FOR_REDEEM = 1 days;
 
   using SafeMath for uint;
 

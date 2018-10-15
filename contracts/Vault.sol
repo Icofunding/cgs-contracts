@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-import './util/SafeMath.sol';
+import "./util/SafeMath.sol";
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -33,12 +33,12 @@ contract Vault {
   event ev_Withdraw(address indexed to, uint amount);
 
   modifier onlyCGS() {
-    require(msg.sender == cgsAddress);
+    require(msg.sender == cgsAddress, "Only CGS can execute it");
 
-      _;
+    _;
   }
 
-  function Vault(address _cgsAddress) public {
+  constructor(address _cgsAddress) public {
     cgsAddress = _cgsAddress;
   }
 
@@ -48,7 +48,7 @@ contract Vault {
     totalCollected = totalCollected.add(msg.value);
     etherBalance = etherBalance.add(msg.value);
 
-    ev_Deposit(msg.sender, msg.value);
+    emit ev_Deposit(msg.sender, msg.value);
 
     return true;
   }
@@ -61,14 +61,14 @@ contract Vault {
     etherBalance = etherBalance.sub(amount);
     to.transfer(amount);
 
-    ev_Withdraw(to, amount);
+    emit ev_Withdraw(to, amount);
 
     return true;
   }
 
   /// @notice Forwards to deposit()
   /// @dev Forwards to deposit(). Consumes more than the standard gas.
-  function () public payable {
-    assert(deposit());
+  function () external payable {
+    require(deposit(), "Error depositing Ether");
   }
 }

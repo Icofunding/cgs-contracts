@@ -1,0 +1,21 @@
+image: node:latest
+
+before_script:
+ - npm install -g truffle@4.1.13
+ - npm install -g ganache-cli@6.1.6
+ - npm install
+
+stages:
+ - build
+ - test
+
+build:
+ stage: build
+ script:
+   - truffle compile
+
+test:
+ stage: test
+ script:
+   - ganache-cli -p 7545 -e 1000 -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" > /dev/null &
+   - truffle test

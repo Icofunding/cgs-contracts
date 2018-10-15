@@ -13,6 +13,9 @@ contract('CGS Factory', function(accounts) {
 
   let FakeCGSBinaryVoteContract;
 
+  let claimPrice;
+  let isClaimPriceVariable;
+
   before(async () => {
     owner = accounts[0];
     tokenHolder1 = accounts[1];
@@ -20,6 +23,7 @@ contract('CGS Factory', function(accounts) {
     icoLauncher = accounts[3];
 
     claimPrice = 500;
+    isClaimPriceVariable = false;
 
     FakeCGSBinaryVoteContract = await FakeCGSBinaryVote.new();
   });
@@ -40,7 +44,7 @@ contract('CGS Factory', function(accounts) {
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, "TEST", "TST", 2);
 
     // Check the event
-    let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, icoLauncher, TestTokenContract.address, NOW, {from: icoLauncher})).logs[0];
+    let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, NOW, {from: icoLauncher})).logs[0];
     assert.equal(event.event, 'ev_NewCGS', "incorrect event name");
     assert.equal(event.args.creator, icoLauncher, "incorrect creator");
     assert.equal(event.args.id.toNumber(), 0, "incorrect id");

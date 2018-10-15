@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 /*
   Copyright (C) 2018 Icofunding S.L.
@@ -65,7 +65,7 @@ contract CGSBinaryVoteInterface {
   function canRevealVote(uint voteId, address user, bytes32 salt) public view returns(bool);
   function calculateRevealedVote(uint voteId, address user, bytes32 salt) public view returns(bool);
   function getVoteResult(uint voteId) public view returns(bool);
-  
+
   function getVotingProcessDuration() public pure returns(uint);
   function getVotePhaseDuration() public pure returns(uint);
   function getRevealPhaseDuration() public pure returns(uint);

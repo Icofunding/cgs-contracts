@@ -1,8 +1,8 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-import '../interfaces/ERC20.sol';
-import '../util/SafeMath.sol';
-import '../util/Owned.sol';
+import "../interfaces/ERC20.sol";
+import "../util/SafeMath.sol";
+import "../util/Owned.sol";
 
 /**
  * Standard ERC20 token with fake data. ONLY FOR TESTING
@@ -17,7 +17,7 @@ contract ICOTestToken is ERC20, Owned {
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  function ICOTestToken(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
+  constructor(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
@@ -55,7 +55,7 @@ contract ICOTestToken is ERC20, Owned {
   function approve(address _spender, uint _value) public returns (bool success) {
     allowed[msg.sender][_spender] = _value;
 
-    Approval(msg.sender, _spender, _value);
+    emit Approval(msg.sender, _spender, _value);
 
     return true;
   }
@@ -64,7 +64,7 @@ contract ICOTestToken is ERC20, Owned {
     balances[_from] = balances[_from].sub(_value);
     balances[_to] = balances[_to].add(_value);
 
-    Transfer(_from, _to, _value);
+    emit Transfer(_from, _to, _value);
 
     return true;
   }

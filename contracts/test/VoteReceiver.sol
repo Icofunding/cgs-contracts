@@ -1,13 +1,13 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-import '../interfaces/BinaryVoteCallback.sol';
+import "../interfaces/BinaryVoteCallback.sol";
 
 /**
  * ONLY FOR TESTING
  */
 contract VoteReceiver is BinaryVoteCallback {
 
-  function binaryVoteResult(uint voteId, bool result) public returns (bool) {
+  function binaryVoteResult(uint /* voteId */, bool /* result */) public returns (bool) {
 
     return true;
   }
