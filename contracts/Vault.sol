@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./util/SafeMath.sol";
 
@@ -57,7 +57,7 @@ contract Vault {
   /// @dev Sends ether to the ICO launcher/token holders
   /// @param to Account where the funds are going to be sent
   /// @param amount Amount of Wei to withdraw
-  function withdraw(address to, uint amount) public onlyCGS returns(bool) {
+  function withdraw(address payable to, uint amount) public onlyCGS returns(bool) {
     etherBalance = etherBalance.sub(amount);
     to.transfer(amount);
 

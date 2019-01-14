@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./CGS.sol";
 
@@ -45,16 +45,18 @@ contract CGSFactory {
     uint _weiPerSecond,
     uint _claimPrice,
     bool _isClaimPriceVariable,
-    address _icoLauncher,
+    address payable _icoLauncher,
     address _tokenAddress,
     uint _startDate
   )
     public
-    returns (address cgs)
+    returns (address)
   {
-    cgs = new CGS(_weiPerSecond, _claimPrice, _isClaimPriceVariable, _icoLauncher, _tokenAddress, _startDate);
-    CGS(cgs).setCGSVoteAddress(cgsVoteAddress);
-    register(cgs);
+    CGS cgs = new CGS(_weiPerSecond, _claimPrice, _isClaimPriceVariable, _icoLauncher, _tokenAddress, _startDate);
+    cgs.setCGSVoteAddress(cgsVoteAddress);
+    register(address(cgs));
+
+    return address(cgs);
   }
 
   /// @notice Registers contract in factory registry.
