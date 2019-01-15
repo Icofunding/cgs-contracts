@@ -10,7 +10,6 @@ const Hash = artifacts.require("./util/Hash.sol");
 contract('CGSBinaryVote', function(accounts) {
   const ONE_DAY = 24*60*60;
   // const NOW = Math.floor(Date.now() / 1000);
-  const NOW = web3.eth.getBlock("latest").timestamp;
   const SECRET_VOTE_STAGE = 0;
   const REVEAL_VOTE_STAGE = 1;
   const SETTLEMENT_STAGE = 2;
@@ -101,12 +100,10 @@ contract('CGSBinaryVote', function(accounts) {
 
     assert.equal(SECRET_VOTE_STAGE, (await CGSBinaryVoteContract.getStage.call(voteId)).toNumber(), "incorrect stage");;
 
-    increaseTime(TIME_TO_VOTE);
-    mineBlock();
+    await increaseTime(TIME_TO_VOTE);    
     assert.equal(REVEAL_VOTE_STAGE, (await CGSBinaryVoteContract.getStage.call(voteId)).toNumber(), "incorrect stage");;
 
-    increaseTime(TIME_TO_REVEAL);
-    mineBlock();
+    await increaseTime(TIME_TO_REVEAL);
     assert.equal(SETTLEMENT_STAGE, (await CGSBinaryVoteContract.getStage.call(voteId)).toNumber(), "incorrect stage");;
   });
 
@@ -118,6 +115,7 @@ contract('CGSBinaryVote', function(accounts) {
     let voteValue = true;
     let salt = await HashContract.sha3String("The most secure password ever");
     let hash = await HashContract.sha3Vote(voteValue, salt);
+    const NOW = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, cgsInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
@@ -199,7 +197,7 @@ contract('CGSBinaryVote', function(accounts) {
     assert.isFalse(await CGSBinaryVoteContract.calculateRevealedVote.call(voteId, tokenHolder2, salt), "incorrect vote revelation"); // False
 
     await assertRevert(async () => {
-      await CGSBinaryVoteContract.calculateRevealedVote.call(voteId, tokenHolder3, "Potato")
+      await CGSBinaryVoteContract.calculateRevealedVote.call(voteId, tokenHolder3, await HashContract.sha3String("Potato"))
     })
     // await expectThrow(await CGSBinaryVoteContract.calculateRevealedVote.call(voteId, tokenHolder3, "Potato")); // Fail
   });
@@ -220,7 +218,7 @@ contract('CGSBinaryVote', function(accounts) {
     await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote, {from: tokenHolder1});
     await CGSBinaryVoteContract.vote(voteId, numTokensToVote, hash, {from: tokenHolder1});
 
-    increaseTime(TIME_TO_VOTE);
+    await increaseTime(TIME_TO_VOTE);
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder1});
 
     let voteData = await CGSBinaryVoteContract.votes.call(0);
@@ -256,12 +254,11 @@ contract('CGSBinaryVote', function(accounts) {
     await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote2, {from: tokenHolder2});
     await CGSBinaryVoteContract.vote(voteId, numTokensToVote2, hash2, {from: tokenHolder2});
 
-    increaseTime(TIME_TO_VOTE);
+    await increaseTime(TIME_TO_VOTE);
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder1});
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder2});
 
-    increaseTime(TIME_TO_REVEAL);
-
+    await increaseTime(TIME_TO_REVEAL);
     await CGSBinaryVoteContract.withdrawTokens(voteId, {from: tokenHolder1});
     await CGSBinaryVoteContract.withdrawTokens(voteId, {from: tokenHolder2});
 
@@ -307,13 +304,13 @@ contract('CGSBinaryVote', function(accounts) {
     await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote4, {from: tokenHolder4});
     await CGSBinaryVoteContract.vote(voteId, numTokensToVote4, hash, {from: tokenHolder4});
 
-    increaseTime(TIME_TO_VOTE);
+    await increaseTime(TIME_TO_VOTE);
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder1});
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder2});
     // token holder 3 does not reveal
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder4});
 
-    increaseTime(TIME_TO_REVEAL);
+    await increaseTime(TIME_TO_REVEAL);
 
     let voteData = await CGSBinaryVoteContract.votes.call(0);
     assert.equal(numTokensToVote + numTokensToVote4, voteData[2].toNumber(), "incorrect true numVotes");
@@ -376,13 +373,13 @@ contract('CGSBinaryVote', function(accounts) {
     await TestTokenContract.approve(CGSBinaryVoteContract.address, numTokensToVote4, {from: tokenHolder4});
     await CGSBinaryVoteContract.vote(voteId, numTokensToVote4, hash, {from: tokenHolder4});
 
-    increaseTime(TIME_TO_VOTE);
+    await increaseTime(TIME_TO_VOTE);
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder1});
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder2});
     // token holder 3 does not reveal
     await CGSBinaryVoteContract.reveal(voteId, salt, {from: tokenHolder4});
 
-    increaseTime(TIME_TO_REVEAL);
+    await increaseTime(TIME_TO_REVEAL);
 
     let voteData = await CGSBinaryVoteContract.votes.call(0);
     assert.equal(numTokensToVote2, voteData[2].toNumber(), "incorrect true numVotes");

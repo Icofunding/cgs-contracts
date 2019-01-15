@@ -50,7 +50,7 @@ contract('CGS', function(accounts) {
   it("Deployment with initial values", async function() {
     let icoInitialSupply = 1000;
     let weiPerSecond = 5;
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -74,7 +74,7 @@ contract('CGS', function(accounts) {
   it("Set CGSVote as owner", async function() {
     let icoInitialSupply = 1000;
     let weiPerSecond = 5;
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -87,8 +87,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToMint = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     claimPriceVariable = 5;
     isClaimPriceVariableTrue = true;
@@ -107,8 +107,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -129,36 +129,34 @@ contract('CGS', function(accounts) {
     assert.equal(CLAIM_OPEN_STAGE, await CGSContract.getStage.call(), "incorrect value");
 
     // Simulate the vote
-    increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
+    await increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // The claim starts redeen stage
     assert.equal(REDEEM_STAGE, await CGSContract.getStage.call(), "incorrect value");
 
-    increaseTime(TIME_FOR_REDEEM);
-    mineBlock();
+    await increaseTime(TIME_FOR_REDEEM);
 
     // The claim has ended
     assert.equal(CLAIM_ENDED_STAGE, await CGSContract.getStage.call(), "incorrect value");
 
-    increaseTime(TIME_BETWEEN_CLAIMS);
-    mineBlock();
+    await increaseTime(TIME_BETWEEN_CLAIMS);
 
     // The project goes back to open claim period
     assert.equal(CLAIM_PERIOD_STAGE, await CGSContract.getStage.call(), "incorrect value");
     assert.equal(0, await CGSContract.getTotalDeposit.call(), "incorrect value");
     assert.equal(2, await CGSContract.getCurrentClaim.call(), "incorrect value");
     // To force the change in the contract itself
-    await CGSContract.cashOut({from: tokenHolder1});
+    await CGSContract.cashOut({from: tokenHolder1});    
   });
 
   it("Check stages without redeem", async function() {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -179,15 +177,14 @@ contract('CGS', function(accounts) {
     assert.equal(CLAIM_OPEN_STAGE, await CGSContract.getStage.call(), "incorrect value");
 
     // Simulate the vote
-    increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
+    await increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // The claim has ended
     assert.equal(CLAIM_ENDED_STAGE, await CGSContract.getStage.call(), "incorrect value");
 
-    increaseTime(TIME_BETWEEN_CLAIMS);
-    mineBlock();
+    await increaseTime(TIME_BETWEEN_CLAIMS);
 
     // The project goes back to open claim period
     assert.equal(CLAIM_PERIOD_STAGE, await CGSContract.getStage.call(), "incorrect value");
@@ -201,8 +198,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -232,8 +229,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -269,8 +266,8 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 250;
     let numTokensToWithdraw = 150;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -302,8 +299,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 250;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -335,8 +332,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -352,7 +349,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // To make sure that the balances are updated correctly
     assert.isTrue(await CGSContract.claimResults.call(currentClaim), "incorrect value");
@@ -363,8 +360,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -380,7 +377,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // To make sure that the balances are updated correctly
     assert.isFalse(await CGSContract.claimResults.call(currentClaim), "incorrect value");
@@ -392,8 +389,8 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let numTokensToRedeem = 100;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("2", "Ether");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("2", "Ether");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSBinaryVoteContract = await CGSBinaryVote.new(TestTokenContract.address);
@@ -428,8 +425,8 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let numTokensToRedeem = 100;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("2", "Ether");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("2", "Ether");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -445,25 +442,26 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // To check
     let percentOfTokens = numTokensToRedeem/icoInitialSupply;
     let remainingEther = weiToDeposit - (await CGSContract.calculateWeiToWithdraw.call()).toNumber();
-    let previousBalance = web3.eth.getBalance(tokenHolder1).toNumber();
+    
+    let previousBalance = parseInt(await web3.eth.getBalance(tokenHolder1));
 
     // Approve and transferFrom to redeem tokens
     await TestTokenContract.approve(CGSContract.address, numTokensToRedeem, {from: tokenHolder1});
     await CGSContract.redeem(numTokensToRedeem, {from: tokenHolder1});
 
     // To make sure that the balances are updated correctly
-    let weiReceived = web3.eth.getBalance(tokenHolder1).toNumber() - previousBalance;
+    let weiReceived = parseInt(await web3.eth.getBalance(tokenHolder1)) - previousBalance;
     let VaultContract = Vault.at(await CGSContract.vaultAddress.call());
 
     // The % of ether corresponds with the % of tokens
     assert.approximately(percentOfTokens, weiReceived/remainingEther, 0.01, "incorrect percent of wei");
     // Correct amount of ether Redeemed
-    assert.equal(percentOfTokens*remainingEther, (await CGSContract.weiRedeem.call()).toNumber(), "incorrect value");
+    assert.equal(percentOfTokens*remainingEther, await CGSContract.weiRedeem.call(), "incorrect value");
     // The tokens have move from ICO holder to ICO launcher
     assert.equal(icoInitialSupply - numTokensToDeposit - numTokensToRedeem, (await TestTokenContract.balanceOf.call(tokenHolder1)).toNumber(), "incorrect value");
     assert.equal(numTokensToRedeem, (await CGSContract.tokensInVesting.call()).toNumber(), "incorrect value");
@@ -475,8 +473,8 @@ contract('CGS', function(accounts) {
     let numTokensToRedeem = 100;
     let numTokensToRedeem2 = 50;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("2", "Ether");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("2", "Ether");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -492,7 +490,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // To check
     let percentOfTokens = numTokensToRedeem2/icoInitialSupply;
@@ -503,14 +501,14 @@ contract('CGS', function(accounts) {
 
     // To check
     let remainingEther = weiToDeposit - (await CGSContract.calculateWeiToWithdraw.call()).toNumber();
-    let previousBalance = web3.eth.getBalance(tokenHolder1).toNumber();
+    let previousBalance = parseInt(await web3.eth.getBalance(tokenHolder1));
 
     // Approve and transferFrom to redeem tokens
     await TestTokenContract.approve(CGSContract.address, numTokensToRedeem2, {from: tokenHolder1});
     await CGSContract.redeem(numTokensToRedeem2, {from: tokenHolder1});
 
     // To make sure that the balances are updated correctly
-    let weiReceived = web3.eth.getBalance(tokenHolder1).toNumber() - previousBalance;
+    let weiReceived = parseInt(await web3.eth.getBalance(tokenHolder1)) - previousBalance;
 
     // The % of ether corresponds with the % of tokens
     assert.approximately(percentOfTokens, weiReceived/remainingEther, 0.01, "incorrect percent of wei");
@@ -523,8 +521,8 @@ contract('CGS', function(accounts) {
     let numTokensToDeposit = 500;
     let numTokensToRedeem = 400;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -540,14 +538,14 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // Approve and transferFrom to redeem tokens
     await TestTokenContract.approve(CGSContract.address, numTokensToRedeem, {from: tokenHolder1});
     await CGSContract.redeem(numTokensToRedeem, {from: tokenHolder1});
 
     // Withdraw the tokens when there is no ether in Vault
-    increaseTime(ONE_DAY * 20);
+    await increaseTime(ONE_DAY * 20);
     await CGSContract.withdrawWei({from: icoLauncher});
     await CGSContract.withdrawLockedTokens({from: icoLauncher});
 
@@ -559,8 +557,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -576,7 +574,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // tokens to Cash out
     let tokensToCashOut = await CGSContract.tokensToCashOut.call(tokenHolder1);
@@ -591,8 +589,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -608,7 +606,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // tokens to Cash out
     let tokensToCashOut = await CGSContract.tokensToCashOut.call(tokenHolder1);
@@ -623,8 +621,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -640,7 +638,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), false);
 
     // Cash out
     await CGSContract.cashOut({from: tokenHolder1});
@@ -656,8 +654,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("200", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("200", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -673,7 +671,7 @@ contract('CGS', function(accounts) {
 
     // Simulate the vote
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // Cash out
     await CGSContract.cashOut({from: tokenHolder1});
@@ -690,8 +688,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 1;
-    let weiToDeposit = web3.toWei("1", "ether");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("1", "ether");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -707,12 +705,12 @@ contract('CGS', function(accounts) {
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
 
     // Simulate the vote
-    increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
+    await increaseTime(TIME_TO_VOTE + TIME_TO_REVEAL);
     let currentClaim = (await CGSContract.currentClaim.call()).toNumber();
-    FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
+    await FakeCGSBinaryVoteContract.finalizeVote((await CGSContract.voteIds.call(currentClaim)).toNumber(), true);
 
     // Open a new claim
-    increaseTime(TIME_BETWEEN_CLAIMS);
+    await increaseTime(TIME_BETWEEN_CLAIMS);
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder2});
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder2});
 
@@ -734,8 +732,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("20000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("20000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -747,8 +745,7 @@ contract('CGS', function(accounts) {
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
 
-    increaseTime(secondsWithFunding);
-    mineBlock();
+    await increaseTime(secondsWithFunding);
 
     assert.equal(weiToDeposit, (await CGSContract.calculateWeiToWithdraw.call()).toNumber(), "incorrect wei value");
   });
@@ -757,8 +754,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("500000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("500000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -768,8 +765,7 @@ contract('CGS', function(accounts) {
     let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
-    increaseTime(ONE_DAY);
-    mineBlock();
+    await increaseTime(ONE_DAY);
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
     let percerntOfTime = ONE_DAY/secondsWithFunding;
@@ -784,8 +780,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("500000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("500000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -795,15 +791,14 @@ contract('CGS', function(accounts) {
     let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
-    increaseTime(ONE_DAY);
+    await increaseTime(ONE_DAY);
 
     // Open a claim
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
 
     // This day shouldn't be taken into account
-    increaseTime(ONE_DAY);
-    mineBlock();
+    await increaseTime(ONE_DAY);
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
     let percerntOfTime = ONE_DAY/secondsWithFunding;
@@ -818,8 +813,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("500000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("500000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -829,14 +824,14 @@ contract('CGS', function(accounts) {
     let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
-    increaseTime(ONE_DAY);
+    await increaseTime(ONE_DAY);
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
     let percerntOfTime = ONE_DAY/secondsWithFunding;
 
-    let prevBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let prevBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     await CGSContract.withdrawWei({from: icoLauncher});
-    let newBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let newBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     let etherWithdrawn = prevBalance - newBalance;
 
     // % of time corresponds to % of wei withdrawn
@@ -849,8 +844,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("500000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("500000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -860,22 +855,21 @@ contract('CGS', function(accounts) {
     let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
-    increaseTime(ONE_DAY);
+    await increaseTime(ONE_DAY);
 
     // Open a claim
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
 
     // This day shouldn't be taken into account
-    increaseTime(ONE_DAY);
-    mineBlock();
+    await increaseTime(ONE_DAY);
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
     let percerntOfTime = ONE_DAY/secondsWithFunding;
 
-    let prevBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let prevBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     await CGSContract.withdrawWei({from: icoLauncher});
-    let newBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let newBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     let etherWithdrawn = prevBalance - newBalance;
 
     // % of time corresponds to % of wei withdrawn
@@ -886,8 +880,8 @@ contract('CGS', function(accounts) {
     let icoInitialSupply = 1000;
     let numTokensToDeposit = 500;
     let weiPerSecond = 5;
-    let weiToDeposit = web3.toWei("2000000", "Wei");
-    let timestamp = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+    let weiToDeposit = web3.utils.toWei("2000000", "Wei");
+    let timestamp = (await web3.eth.getBlock("latest")).timestamp;
 
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, tokenName, tokenSymbol, tokenDecimals);
     let CGSContract = await CGS.new(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp);
@@ -897,24 +891,23 @@ contract('CGS', function(accounts) {
     let VaultAddress = await CGSContract.vaultAddress.call();
     await web3.eth.sendTransaction({from: icoLauncher, to: VaultAddress, value: weiToDeposit});
 
-    increaseTime(ONE_DAY);
+    await increaseTime(ONE_DAY);
 
     // Open a claim
     await TestTokenContract.approve(CGSContract.address, numTokensToDeposit, {from: tokenHolder1});
     await CGSContract.depositTokens(numTokensToDeposit, {from: tokenHolder1});
 
     // This day shouldn't be taken into account
-    increaseTime(ONE_DAY);
-    mineBlock();
+    await increaseTime(ONE_DAY);
 
     let secondsWithFunding = weiToDeposit/weiPerSecond;
     let percerntOfTime = ONE_DAY/secondsWithFunding;
 
-    let prevBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let prevBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     await CGSContract.withdrawWei({from: icoLauncher});
-    let newBalance = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let newBalance = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
     await CGSContract.withdrawWei({from: icoLauncher});
-    let newBalance2 = web3.eth.getBalance(await CGSContract.vaultAddress.call()).toNumber();
+    let newBalance2 = parseInt(await web3.eth.getBalance(await CGSContract.vaultAddress.call()));
 
     // % of time corresponds to % of wei withdrawn
     assert.equal(newBalance, newBalance2, "incorrect wei value");

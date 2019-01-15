@@ -39,11 +39,13 @@ module.exports = async function(deployer, network, accounts) {
 
   // Sends 10 Ether to Vault
   await deployer.deploy(CGS, weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, ICOTestToken.address, NOW, {from: icoLauncher});
-  let CGSContract = CGS.at(CGS.address);
+  let CGSContract = await CGS.at(CGS.address);
+  
   await CGSContract.setCGSVoteAddress(CGSBinaryVote.address, {from: icoLauncher});
   //let CGSContract = CGS.at(event.args.cgs);
   let vaultAddress = await CGSContract.vaultAddress.call();
-  await web3.eth.sendTransaction({from: accounts[0], to: vaultAddress, value: web3.toWei("10", "Ether")});
+  
+  await web3.eth.sendTransaction({from: accounts[0], to: vaultAddress, value: web3.utils.toWei("10", "Ether")});
 
   console.log("==================================");
   console.log("Contracts deployed:");
