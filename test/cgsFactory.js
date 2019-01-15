@@ -4,7 +4,7 @@ const TestToken = artifacts.require("./test/TestToken.sol");
 const FakeCGSBinaryVote = artifacts.require("./test/FakeCGSBinaryVote.sol");
 
 contract('CGS Factory', function(accounts) {
-  const NOW = web3.eth.getBlock("latest").timestamp;
+  let timestamp;
 
   let owner;
   let tokenHolder1;
@@ -17,6 +17,7 @@ contract('CGS Factory', function(accounts) {
   let isClaimPriceVariable;
 
   before(async () => {
+    timestamp = (await web3.eth.getBlock("latest")).timestamp;
     owner = accounts[0];
     tokenHolder1 = accounts[1];
     tokenHolder2 = accounts[2];
@@ -44,7 +45,7 @@ contract('CGS Factory', function(accounts) {
     let TestTokenContract = await TestToken.new(tokenHolder1, icoInitialSupply, "TEST", "TST", 2);
 
     // Check the event
-    let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, NOW, {from: icoLauncher})).logs[0];
+    let event = (await CGSFactoryContract.create(weiPerSecond, claimPrice, isClaimPriceVariable, icoLauncher, TestTokenContract.address, timestamp, {from: icoLauncher})).logs[0];
     assert.equal(event.event, 'ev_NewCGS', "incorrect event name");
     assert.equal(event.args.creator, icoLauncher, "incorrect creator");
     assert.equal(event.args.id.toNumber(), 0, "incorrect id");

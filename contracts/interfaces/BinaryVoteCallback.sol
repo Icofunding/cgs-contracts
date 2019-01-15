@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 /*
   Copyright (C) 2018 Icofunding S.L.

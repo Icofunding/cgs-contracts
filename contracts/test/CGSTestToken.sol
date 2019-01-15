@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "../interfaces/ERC20.sol";
 import "../util/SafeMath.sol";
@@ -17,7 +17,7 @@ contract CGSTestToken is ERC20, Owned {
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
 
-  constructor(address recipient, uint amount, string _name, string _symbol, uint _decimals) public {
+  constructor(address recipient, uint amount, string memory _name, string memory _symbol, uint _decimals) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
@@ -69,11 +69,11 @@ contract CGSTestToken is ERC20, Owned {
     return true;
   }
 
-  function balanceOf(address _owner) public constant returns (uint balance) {
+  function balanceOf(address _owner) public view returns (uint balance) {
     return balances[_owner];
   }
 
-  function allowance(address _owner, address _spender) public constant returns (uint remaining) {
+  function allowance(address _owner, address _spender) public view returns (uint remaining) {
     return allowed[_owner][_spender];
   }
 }

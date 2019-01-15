@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./util/SafeMath.sol";
 import "./interfaces/BinaryVoteCallback.sol";
@@ -127,9 +127,9 @@ contract CGSBinaryVote {
     // You cannot vote with 0 tokens (?)
     require(numTokens > 0, "You cannot vote with 0 tokens");
     // Enough tokens allowed
-    require(numTokens <= ERC20(cgsToken).allowance(msg.sender, this), "Not enough tokens allowed");
+    require(numTokens <= ERC20(cgsToken).allowance(msg.sender, address(this)), "Not enough tokens allowed");
 
-    require(ERC20(cgsToken).transferFrom(msg.sender, this, numTokens), "Error transfering tokens");
+    require(ERC20(cgsToken).transferFrom(msg.sender, address(this), numTokens), "Error transfering tokens");
 
     votes[voteId].userDeposits[msg.sender] = numTokens;
     votes[voteId].secretVotes[msg.sender] = secretVote;
